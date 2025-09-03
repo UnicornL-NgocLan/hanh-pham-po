@@ -1,22 +1,73 @@
 import { useState, useEffect } from 'react'
 import { Button, Drawer, Form, Input, Space } from 'antd'
 import axios from 'axios'
+import { Table } from 'antd'
+import { useZustand } from '../zustand.js'
 
 const Uom = () => {
     const [showDrawer, setShowDrawer] = useState(false)
+    const [data, setData] = useState([])
+    const { setUomState, uoms } = useZustand()
+
+    const getUoms = async () => {
+        try {
+            const { data } = await axios.get('/api/get-uoms')
+            setUomState(data.data)
+            setData(data.data)
+        } catch (error) {
+            console.log(error)
+            alert(error?.response?.data?.msg)
+        }
+    }
+
+    useEffect(() => {
+        setData(uoms)
+    }, [])
+
+    const columns = [
+        {
+            title: 'Tên',
+            dataIndex: 'name',
+            key: 'name',
+            render: (text) => <span>{text}</span>,
+        },
+        {
+            title: 'Hành động',
+            key: 'action',
+            render: (_, record) => (
+                <Space size="middle">
+                    <Button onClick={() => setShowDrawer(record)}>
+                        Chỉnh sửa
+                    </Button>
+                </Space>
+            ),
+        },
+    ]
+
     return (
         <div>
-            <Button type="primary" onClick={() => setShowDrawer(true)}>
+            <Button
+                type="primary"
+                onClick={() => setShowDrawer(true)}
+                style={{ marginBottom: 16 }}
+            >
                 Tạo
             </Button>
-            <MyDrawer open={showDrawer} onClose={() => setShowDrawer(false)} />
+            <Table columns={columns} dataSource={data} />
+            {showDrawer && (
+                <MyDrawer
+                    open={showDrawer}
+                    onClose={() => setShowDrawer(false)}
+                    getUoms={getUoms}
+                />
+            )}
         </div>
     )
 }
 
 export default Uom
 
-const MyDrawer = ({ open, onClose }) => {
+const MyDrawer = ({ open, onClose, getUoms }) => {
     const [form] = Form.useForm()
     const [loading, setLoading] = useState(false)
 
@@ -25,10 +76,16 @@ const MyDrawer = ({ open, onClose }) => {
             const { name } = form.getFieldsValue()
             if (!name) return alert('Vui lòng nhập đầy đủ thông tin bắt buộc')
             setLoading(true)
-            await axios.post('/api/create-uom', { name })
+            if (open?._id) {
+                await axios.patch(`/api/update-uom/${open._id}`, { name })
+            } else {
+                await axios.post('/api/create-uom', { name })
+            }
             onClose()
+            await getUoms()
         } catch (error) {
-            alert(error.response.data.msg)
+            console.log(error)
+            alert(error?.response?.data?.msg)
         } finally {
             setLoading(false)
         }

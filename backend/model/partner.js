@@ -4,17 +4,16 @@ const PartnerSchema = mongoose.Schema(
     {
         code: String,
         name: String,
-        customer: Boolean,
-        supplier: Boolean,
         address: String,
         district: String,
+        city: String,
         country: String,
-        vat: String,
         phone: String,
+        vat: String,
         fax: String,
         accountNumber: String,
         accountBank: String,
-        active: Boolean,
+        active: { type: Boolean, default: true },
     },
     { timestamps: true }
 )

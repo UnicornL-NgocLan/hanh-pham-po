@@ -5,7 +5,19 @@ const Uoms = require('../model/uom.js')
 const masterDataCtrl = {
     createPartner: async (req, res) => {
         try {
-            const { code, name, customer, supplier } = req.body
+            const {
+                code,
+                name,
+                address,
+                vat,
+                district,
+                country,
+                phone,
+                fax,
+                accountNumber,
+                city,
+                accountBank,
+            } = req.body
 
             if (code) {
                 const existingRecord = await Partners.findOne({ code })
@@ -18,12 +30,15 @@ const masterDataCtrl = {
             await Partners.create({
                 code,
                 name,
-                customer,
-                supplier,
-                height,
-                width,
-                length,
-                leadTime,
+                address,
+                vat,
+                district,
+                country,
+                phone,
+                fax,
+                accountNumber,
+                city,
+                accountBank,
             })
             res.status(200).json({ msg: 'OK' })
         } catch (error) {
