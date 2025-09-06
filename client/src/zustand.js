@@ -1,10 +1,16 @@
 import { create } from 'zustand'
 
 export const useZustand = create((set) => ({
-  products: [],
-  partners: [],
-  uoms: [],
-  setProductState: (value) => set({ products: value }),
-  setPartnerState: (value) => set({ partners: value }),
-  setUomState: (value) => set({ uoms: value }),
+    products: [],
+    partners: [],
+    uoms: [],
+    prs: [],
+    pr_sequences: [],
+    pr_lines: [],
+    setProductState: (value) => set({ products: value }),
+    setPartnerState: (value) => set({ partners: value }),
+    setUomState: (value) => set({ uoms: value }),
+    setPrState: (value) => set({ prs: value }),
+    setPrSequenceState: (value) => set({ pr_sequences: value }),
+    setPrLineState: (value) => set({ pr_lines: value }),
 }))

@@ -14,6 +14,7 @@ app.use(morgan('tiny'))
 
 //Routes
 app.use('/api', require('./routes/masterData.js'))
+app.use('/api', require('./routes/poRoute.js'))
 
 const port = process.env.PORT || 5000
 const uri = process.env.MONGO_URI

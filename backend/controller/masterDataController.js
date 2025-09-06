@@ -8,6 +8,7 @@ const masterDataCtrl = {
             const {
                 code,
                 name,
+                short_name,
                 address,
                 vat,
                 district,
@@ -31,6 +32,7 @@ const masterDataCtrl = {
                 code,
                 name,
                 address,
+                short_name,
                 vat,
                 district,
                 country,

@@ -53,7 +53,12 @@ const Uom = () => {
             >
                 Tạo
             </Button>
-            <Table columns={columns} dataSource={data} />
+            <Table
+                columns={columns}
+                size="small"
+                dataSource={data}
+                rowKey={(record) => record._id}
+            />
             {showDrawer && (
                 <MyDrawer
                     open={showDrawer}

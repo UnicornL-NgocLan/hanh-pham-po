@@ -336,6 +336,8 @@ const Product = () => {
             </Space.Compact>
             <Table
                 columns={columns}
+                size="small"
+                rowKey={(record) => record._id}
                 dataSource={data.map((i) => {
                     return { ...i, uom: i.uom_id?.name }
                 })}

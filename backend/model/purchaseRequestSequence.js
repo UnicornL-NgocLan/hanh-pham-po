@@ -1,6 +1,6 @@
 const mongoose = require('mongoose')
 
-const UomSchema = mongoose.Schema(
+const PurchaseRequestSequenceSchema = mongoose.Schema(
     {
         currentNumber: Number,
         partner_id: {
@@ -13,4 +13,7 @@ const UomSchema = mongoose.Schema(
     { timestamps: true }
 )
 
-module.exports = mongoose.model('Uom', UomSchema)
+module.exports = mongoose.model(
+    'PurchaseRequestSequence',
+    PurchaseRequestSequenceSchema
+)

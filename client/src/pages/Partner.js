@@ -87,6 +87,7 @@ const Partner = () => {
                             address,
                             vat,
                             district,
+                            short_name,
                             country,
                             phone,
                             fax,
@@ -103,6 +104,7 @@ const Partner = () => {
                             district,
                             country,
                             phone,
+                            short_name,
                             fax,
                             accountNumber,
                             city,
@@ -264,6 +266,13 @@ const Partner = () => {
             ...getColumnSearchProps('name'),
         },
         {
+            title: 'Tên viết tắt',
+            dataIndex: 'short_name',
+            key: 'short_name',
+            render: (text) => <span>{text}</span>,
+            ...getColumnSearchProps('short_name'),
+        },
+        {
             title: 'Mã',
             dataIndex: 'code',
             key: 'code',
@@ -362,6 +371,8 @@ const Partner = () => {
             </Space.Compact>
             <Table
                 columns={columns}
+                size="small"
+                rowKey={(record) => record._id}
                 scroll={{ x: 'max-content' }}
                 dataSource={data.map((i) => {
                     return { ...i, uom: i.uom_id?.name }
@@ -391,6 +402,7 @@ const MyDrawer = ({ open, onClose, getPartners }) => {
                 name,
                 address,
                 vat,
+                short_name,
                 district,
                 country,
                 phone,
@@ -399,7 +411,7 @@ const MyDrawer = ({ open, onClose, getPartners }) => {
                 city,
                 accountBank,
             } = form.getFieldsValue()
-            if (!name || !code)
+            if (!name || !code || !short_name)
                 return alert('Vui lòng nhập đầy đủ thông tin bắt buộc')
             setLoading(true)
             if (open?._id) {
@@ -408,6 +420,7 @@ const MyDrawer = ({ open, onClose, getPartners }) => {
                     name,
                     address,
                     vat,
+                    short_name,
                     district,
                     country,
                     phone,
@@ -425,6 +438,7 @@ const MyDrawer = ({ open, onClose, getPartners }) => {
                     district,
                     country,
                     phone,
+                    short_name,
                     fax,
                     accountNumber,
                     city,
@@ -448,6 +462,7 @@ const MyDrawer = ({ open, onClose, getPartners }) => {
             form.setFieldValue('address', open?.address)
             form.setFieldValue('district', open?.district)
             form.setFieldValue('city', open?.city)
+            form.setFieldValue('short_name', open?.short_name)
             form.setFieldValue('country', open?.country)
             form.setFieldValue('vat', open?.vat)
             form.setFieldValue('phone', open?.phone)
@@ -491,6 +506,15 @@ const MyDrawer = ({ open, onClose, getPartners }) => {
                     ]}
                 >
                     <Input className="w-full" placeholder="Công ty ABC..." />
+                </Form.Item>
+                <Form.Item
+                    name="short_name"
+                    label="Tên viết tắt"
+                    rules={[
+                        { required: true, message: 'Hãy nhập tên viết tắt!' },
+                    ]}
+                >
+                    <Input className="w-full" placeholder="TH..." />
                 </Form.Item>
                 <Form.Item
                     name="code"
