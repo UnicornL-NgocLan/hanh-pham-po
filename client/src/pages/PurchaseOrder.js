@@ -6,6 +6,7 @@ import {
     Input,
     Space,
     Select,
+    Statistic,
     DatePicker,
     Tag,
 } from 'antd'
@@ -19,21 +20,24 @@ import { SearchOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { IoPrint } from 'react-icons/io5'
 import { MdEdit } from 'react-icons/md'
-import { exportPurchaseRequestToExcel } from '../utils/createExcelFile.js'
+import {
+    exportPurchaseOrderToExcel,
+    exportPurchaseRequestToExcel,
+} from '../utils/createExcelFile.js'
 
-const PurchaseRequest = () => {
+const PurchaseOrder = () => {
     const [showDrawer, setShowDrawer] = useState(false)
-    const { setPrState, prs } = useZustand()
+    const { setPoState, pos } = useZustand()
     const [data, setData] = useState([])
     const [searchText, setSearchText] = useState('')
     const [searchedColumn, setSearchedColumn] = useState('')
     const searchInput = useRef(null)
     const [printing, setPrinting] = useState(false)
 
-    const getPrs = async (id = false) => {
+    const getPos = async (id = false) => {
         try {
-            const { data } = await axios.get('/api/get-prs')
-            setPrState(data.data)
+            const { data } = await axios.get('/api/get-pos')
+            setPoState(data.data)
             setData(data.data)
 
             if (showDrawer) {
@@ -66,8 +70,8 @@ const PurchaseRequest = () => {
             if (printing) return
             if (!record?._id) return alert('Không tồn tại chứng từ để in')
             setPrinting(true)
-            const { data } = await axios.get(`/api/get-pr-lines/${record?._id}`)
-            await exportPurchaseRequestToExcel(record, data.data)
+            const { data } = await axios.get(`/api/get-po-lines/${record?._id}`)
+            await exportPurchaseOrderToExcel(record, data.data)
         } catch (error) {
             console.log(error)
             alert(error?.response?.data?.msg || error)
@@ -196,12 +200,12 @@ const PurchaseRequest = () => {
             ...getColumnSearchProps('name'),
         },
         {
-            title: 'Ngày đề nghị đặt hàng',
-            dataIndex: 'date',
-            key: 'date',
+            title: 'Ngày đặt hàng',
+            dataIndex: 'date_ordered',
+            key: 'date_ordered',
             align: 'right',
-            width: 200,
-            sorter: (a, b) => moment(a.date) - moment(b.date),
+            width: 130,
+            sorter: (a, b) => moment(a.date_ordered) - moment(b.date_ordered),
             render: (value) => (
                 <span>{moment(value).format('DD/MM/YYYY')}</span>
             ),
@@ -215,17 +219,35 @@ const PurchaseRequest = () => {
         },
         {
             title: 'Khách hàng',
-            dataIndex: 'customer',
-            key: 'customer',
+            dataIndex: 'buyer',
+            key: 'buyer',
             render: (text) => <span>{text}</span>,
-            ...getColumnSearchProps('customer'),
+            ...getColumnSearchProps('buyer'),
         },
         {
-            title: 'Mã hợp đồng',
-            dataIndex: 'contract_code',
-            key: 'contract_code',
+            title: 'Đề nghị mua hàng',
+            dataIndex: 'pr',
+            key: 'pr',
             render: (text) => <span>{text}</span>,
-            ...getColumnSearchProps('contract_code'),
+            ...getColumnSearchProps('pr'),
+        },
+        {
+            title: 'Tiền không thuế',
+            dataIndex: 'amount_untaxed',
+            key: 'amount_untaxed',
+            render: (text) => <span>{Intl.NumberFormat().format(text)}</span>,
+        },
+        {
+            title: 'Thuế',
+            dataIndex: 'tax',
+            key: 'tax',
+            render: (text) => <span>{Intl.NumberFormat().format(text)}</span>,
+        },
+        {
+            title: 'Thành tiền',
+            dataIndex: 'total_amount',
+            key: 'total_amount',
+            render: (text) => <span>{Intl.NumberFormat().format(text)}</span>,
         },
         {
             title: 'Trạng thái',
@@ -264,7 +286,7 @@ const PurchaseRequest = () => {
     ]
 
     useEffect(() => {
-        setData(prs)
+        setData(pos)
     }, [])
 
     return (
@@ -284,7 +306,8 @@ const PurchaseRequest = () => {
                     return {
                         ...i,
                         partner: i?.partner_id?.name,
-                        customer: i?.customer_id?.name,
+                        buyer: i?.buyer_id?.name,
+                        pr: i?.pr_id?.name,
                     }
                 })}
             />
@@ -292,31 +315,31 @@ const PurchaseRequest = () => {
                 <MyDrawer
                     open={showDrawer}
                     onClose={() => setShowDrawer(false)}
-                    getPrs={getPrs}
+                    getPos={getPos}
                 />
             )}
         </div>
     )
 }
 
-export default PurchaseRequest
+export default PurchaseOrder
 
-const MyDrawer = ({ open, onClose, getPrs }) => {
+const MyDrawer = ({ open, onClose, getPos }) => {
     const [form] = Form.useForm()
     const [loading, setLoading] = useState(false)
     const [searchText, setSearchText] = useState('')
     const [searchedColumn, setSearchedColumn] = useState('')
     const searchInput = useRef(null)
-    const [showPurchaseRequestLineDrawer, setShowPurchaseRequestLineDrawer] =
+    const [showPurchaseOrderLineDrawer, setShowPurchaseOrderLineDrawer] =
         useState(false)
-    const { partners, pr_lines, setPrLineState } = useZustand()
+    const { partners, po_lines, setPoLineState, prs } = useZustand()
 
     const handleGetRespectiveLines = async () => {
         try {
             if (!open?._id) return
             setLoading(true)
-            const { data } = await axios.get(`/api/get-pr-lines/${open?._id}`)
-            setPrLineState(data.data)
+            const { data } = await axios.get(`/api/get-po-lines/${open?._id}`)
+            setPoLineState(data.data)
         } catch (error) {
             console.log(error)
             alert(error?.response?.data?.msg || error)
@@ -327,34 +350,72 @@ const MyDrawer = ({ open, onClose, getPrs }) => {
 
     const handleOk = async () => {
         try {
-            const { partner_id, date, contract_code, active, customer_id } =
-                form.getFieldsValue()
-            if (!partner_id || !date || !contract_code)
+            const {
+                name,
+                replaced_for_contract,
+                pr_id,
+                quotation_date,
+                partner_id,
+                buyer_id,
+                date_deliveried,
+                delivered_to,
+                loading_cost,
+                transfer_cost,
+                date_ordered,
+                payment_method_and_due_date,
+                active,
+            } = form.getFieldsValue()
+
+            if (
+                !name ||
+                !replaced_for_contract ||
+                !pr_id ||
+                !quotation_date ||
+                !partner_id ||
+                !buyer_id ||
+                !date_ordered
+            )
                 return alert('Vui lòng nhập đầy đủ thông tin bắt buộc')
 
             if (open?._id && active === undefined)
                 return alert('Vui lòng chọn trạng thái chứng từ')
             setLoading(true)
+
             let po_id_created
             if (open?._id) {
-                await axios.patch(`/api/update-pr/${open._id}`, {
+                await axios.patch(`/api/update-po/${open._id}`, {
+                    name,
+                    replaced_for_contract,
+                    pr_id,
+                    quotation_date,
                     partner_id,
-                    date,
-                    contract_code,
+                    buyer_id,
+                    date_deliveried,
+                    delivered_to,
+                    loading_cost,
+                    transfer_cost,
+                    date_ordered,
+                    payment_method_and_due_date,
                     active,
-                    customer_id,
                 })
             } else {
-                const { data } = await axios.post('/api/create-pr', {
+                const { data } = await axios.post('/api/create-po', {
+                    name,
+                    replaced_for_contract,
+                    pr_id,
+                    quotation_date,
                     partner_id,
-                    date,
-                    contract_code,
-                    customer_id,
+                    buyer_id,
+                    date_deliveried,
+                    delivered_to,
+                    loading_cost,
+                    transfer_cost,
+                    date_ordered,
+                    payment_method_and_due_date,
                 })
-
                 po_id_created = data?.data?._id
             }
-            const result = await getPrs(open?._id || po_id_created)
+            const result = await getPos(open?._id || po_id_created)
             if (!result) {
                 onClose()
             }
@@ -373,11 +434,27 @@ const MyDrawer = ({ open, onClose, getPrs }) => {
     useEffect(() => {
         if (open?._id) {
             form.setFieldValue('name', open?.name)
+            form.setFieldValue(
+                'replaced_for_contract',
+                open?.replaced_for_contract
+            )
             form.setFieldValue('partner_id', open?.partner_id?._id)
-            form.setFieldValue('customer_id', open?.customer_id?._id)
-            form.setFieldValue('date', dayjs(open?.date))
-            form.setFieldValue('contract_code', open?.contract_code)
+            form.setFieldValue('buyer_id', open?.buyer_id?._id)
+            form.setFieldValue('pr_id', open?.pr_id?._id)
+            form.setFieldValue('date_ordered', dayjs(open?.date_ordered))
+            form.setFieldValue('quotation_date', dayjs(open?.quotation_date))
+            form.setFieldValue(
+                'date_deliveried',
+                open?.date_deliveried ? dayjs(open?.date_deliveried) : null
+            )
+            form.setFieldValue('delivered_to', open?.delivered_to)
+            form.setFieldValue('loading_cost', open?.loading_cost)
+            form.setFieldValue('transfer_cost', open?.transfer_cost)
             form.setFieldValue('active', open?.active)
+            form.setFieldValue(
+                'payment_method_and_due_date',
+                open?.payment_method_and_due_date
+            )
         }
     }, [open])
 
@@ -524,65 +601,30 @@ const MyDrawer = ({ open, onClose, getPrs }) => {
             render: (text) => <span>{text}</span>,
         },
         {
-            title: 'Sử dụng cho khách hàng/hợp đồng',
-            dataIndex: 'used_for_customer_contract',
-            key: 'quy_cach',
-            render: (text) => <span>{text}</span>,
-        },
-        {
-            title: 'Số lượng theo hợp đồng',
-            dataIndex: 'contract_quantity',
-            key: 'contract_quantity',
-            render: (text) => <span>{text}</span>,
-        },
-        {
-            title: 'Kho Tổng',
-            dataIndex: 'kho_tong',
-            key: 'kho_tong',
-            render: (text) => <span>{text}</span>,
-        },
-        {
-            title: 'Kho Tân Long',
-            dataIndex: 'kho_tan_long',
-            key: 'kho_tan_long',
-            render: (text) => <span>{text}</span>,
-        },
-        {
-            title: 'Kho An Phú',
-            dataIndex: 'kho_an_phu',
-            key: 'kho_an_phu',
-            render: (text) => <span>{text}</span>,
-        },
-        {
-            title: 'Tổng tồn',
-            dataIndex: 'tong_ton',
-            key: 'tong_ton',
-            render: (text) => <span>{text}</span>,
-        },
-        {
-            title: 'Số lượng cần thêm',
-            dataIndex: 'theoritical_quantity',
-            key: 'theoritical_quantity',
-            render: (text) => <span>{text}</span>,
-        },
-        {
-            title: 'Tỷ lệ hao hụt',
-            dataIndex: 'loss_rate',
-            key: 'loss_rate',
-            render: (text) => <span>{text}</span>,
-        },
-        {
-            title: 'Thực tế cần mua',
-            dataIndex: 'need_quantity',
-            key: 'need_quantity',
-            render: (text) => <span>{text}</span>,
-        },
-        {
-            title: 'Ghi chú',
+            title: 'Chất lượng tiêu chuẩn',
             dataIndex: 'note',
             key: 'note',
             render: (text) => <span>{text}</span>,
         },
+        {
+            title: 'Số lượng',
+            dataIndex: 'quantity',
+            key: 'quantity',
+            render: (value) => <span>{Intl.NumberFormat().format(value)}</span>,
+        },
+        {
+            title: 'Đơn giá',
+            dataIndex: 'price_unit',
+            key: 'price_unit',
+            render: (value) => <span>{Intl.NumberFormat().format(value)}</span>,
+        },
+        {
+            title: 'Thành tiền',
+            dataIndex: 'sub_total',
+            key: 'sub_total',
+            render: (value) => <span>{Intl.NumberFormat().format(value)}</span>,
+        },
+
         {
             title: 'Hành động',
             fixed: 'right',
@@ -591,7 +633,7 @@ const MyDrawer = ({ open, onClose, getPrs }) => {
                 <Space size="small">
                     <Button
                         size="small"
-                        onClick={() => setShowPurchaseRequestLineDrawer(record)}
+                        onClick={() => setShowPurchaseOrderLineDrawer(record)}
                     >
                         <MdEdit />
                     </Button>
@@ -611,8 +653,9 @@ const MyDrawer = ({ open, onClose, getPrs }) => {
         try {
             if (window.confirm('Bạn có chắc muốn xóa?')) {
                 setLoading(true)
-                await axios.delete(`/api/delete-pr-line/${record._id}`)
+                await axios.delete(`/api/delete-po-line/${record._id}`)
                 await handleGetRespectiveLines()
+                await getPos(open?._id)
             }
         } catch (error) {
             console.log(error)
@@ -655,15 +698,71 @@ const MyDrawer = ({ open, onClose, getPrs }) => {
                 onFinish={handleOk}
                 layout="vertical"
             >
-                {open?._id && (
+                <Space.Compact style={{ display: 'flex' }}>
                     <Form.Item
+                        style={{ flex: 1 }}
                         name="name"
                         label="Mã"
                         rules={[{ required: true, message: 'Nhập đầy đủ!' }]}
                     >
                         <Input className="w-full" readOnly disabled />
                     </Form.Item>
-                )}
+                    <Form.Item
+                        style={{ flex: 1 }}
+                        name="pr_id"
+                        label="Đề nghị mua hàng"
+                        rules={[
+                            {
+                                required: true,
+                                message: 'Hãy chọn đề nghị mua hàng',
+                            },
+                        ]}
+                    >
+                        <Select
+                            showSearch
+                            onChange={(e, record) => {
+                                const poName = record.label.replace(
+                                    'DN TS',
+                                    'DH'
+                                )
+                                form.setFieldValue('name', poName)
+                            }}
+                            filterOption={(input, option) =>
+                                (option?.label ?? '')
+                                    .toLowerCase()
+                                    .includes(input.toLowerCase())
+                            }
+                            options={prs.map((i) => {
+                                return { value: i._id, label: i.name }
+                            })}
+                        />
+                    </Form.Item>
+                </Space.Compact>
+                <Form.Item
+                    name="replaced_for_contract"
+                    label="Thay thế cho phụ kiện của Hợp đồng nguyên tắc"
+                    rules={[{ required: true, message: 'Nhập đầy đủ!' }]}
+                >
+                    <Input className="w-full" />
+                </Form.Item>
+                <Space.Compact style={{ display: 'flex' }}>
+                    <Form.Item
+                        name="quotation_date"
+                        style={{ flex: 1 }}
+                        label="Ngày báo giá"
+                        rules={[{ required: true, message: 'Nhập đầy đủ!' }]}
+                    >
+                        <DatePicker style={{ width: '100%' }} />
+                    </Form.Item>
+                    <Form.Item
+                        name="date_ordered"
+                        style={{ flex: 1 }}
+                        label="Ngày đặt hàng"
+                        rules={[{ required: true, message: 'Nhập đầy đủ!' }]}
+                    >
+                        <DatePicker style={{ width: '100%' }} />
+                    </Form.Item>
+                </Space.Compact>
                 <Space.Compact style={{ display: 'flex' }}>
                     <Form.Item
                         style={{ flex: 1 }}
@@ -689,7 +788,7 @@ const MyDrawer = ({ open, onClose, getPrs }) => {
                         />
                     </Form.Item>
                     <Form.Item
-                        name="customer_id"
+                        name="buyer_id"
                         style={{ flex: 1 }}
                         label="Khách hàng"
                         rules={[
@@ -714,73 +813,126 @@ const MyDrawer = ({ open, onClose, getPrs }) => {
                 </Space.Compact>
                 <Space.Compact style={{ display: 'flex' }}>
                     <Form.Item
-                        name="date"
+                        name="date_deliveried"
                         style={{ flex: 1 }}
-                        label="Ngày đề nghị đặt hàng"
-                        rules={[{ required: true, message: 'Nhập đầy đủ!' }]}
+                        label="Ngày giao hàng"
                     >
                         <DatePicker style={{ width: '100%' }} />
                     </Form.Item>
                     <Form.Item
-                        name="contract_code"
-                        label="Mã hợp đồng"
+                        name="delivered_to"
+                        label="Giao hàng đến"
                         style={{ flex: 1 }}
                     >
                         <Input className="w-full" />
                     </Form.Item>
-
-                    {open?._id && (
-                        <Form.Item
-                            name="active"
-                            style={{ flex: 1 }}
-                            label="Trạng thái"
-                            rules={[
-                                {
-                                    required: true,
-                                    message: 'Hãy chọn đối tác',
-                                },
-                            ]}
-                        >
-                            <Select
-                                showSearch
-                                filterOption={(input, option) =>
-                                    (option?.label ?? '')
-                                        .toLowerCase()
-                                        .includes(input.toLowerCase())
-                                }
-                                options={[
-                                    {
-                                        value: true,
-                                        label: 'Khả dụng',
-                                    },
-                                    { value: false, label: 'Bị hủy' },
-                                ]}
-                            />
-                        </Form.Item>
-                    )}
                 </Space.Compact>
+                <Space.Compact style={{ display: 'flex' }}>
+                    <Form.Item
+                        name="loading_cost"
+                        style={{ flex: 1 }}
+                        label="Chi phí bốc xếp"
+                    >
+                        <Input className="w-full" />
+                    </Form.Item>
+                    <Form.Item
+                        name="transfer_cost"
+                        label="Chi phí vận chuyển"
+                        style={{ flex: 1 }}
+                    >
+                        <Input className="w-full" />
+                    </Form.Item>
+                    <Form.Item
+                        name="payment_method_and_due_date"
+                        label="Hình thức và thời hạn thanh toán"
+                        style={{ flex: 1 }}
+                    >
+                        <Input className="w-full" />
+                    </Form.Item>
+                </Space.Compact>
+                {open?._id && (
+                    <Form.Item
+                        name="active"
+                        style={{ flex: 1 }}
+                        label="Trạng thái"
+                        rules={[
+                            {
+                                required: true,
+                                message: 'Hãy chọn đối tác',
+                            },
+                        ]}
+                    >
+                        <Select
+                            showSearch
+                            filterOption={(input, option) =>
+                                (option?.label ?? '')
+                                    .toLowerCase()
+                                    .includes(input.toLowerCase())
+                            }
+                            options={[
+                                {
+                                    value: true,
+                                    label: 'Khả dụng',
+                                },
+                                { value: false, label: 'Bị hủy' },
+                            ]}
+                        />
+                    </Form.Item>
+                )}
+
+                <div style={{ marginBottom: 16 }}>
+                    <Space size={100}>
+                        <Statistic
+                            title="Tiền không thuế"
+                            value={
+                                open?.amount_untaxed
+                                    ? Intl.NumberFormat().format(
+                                          open?.amount_untaxed
+                                      )
+                                    : 0
+                            }
+                        />
+                        <Statistic
+                            title="Thuế"
+                            value={
+                                open?.tax
+                                    ? Intl.NumberFormat().format(open?.tax)
+                                    : 0
+                            }
+                        />
+                        <Statistic
+                            title="Thành tiền"
+                            value={
+                                open?.total_amount
+                                    ? Intl.NumberFormat().format(
+                                          open?.total_amount
+                                      )
+                                    : 0
+                            }
+                        />
+                    </Space>
+                </div>
 
                 {open?._id && (
                     <div>
                         <Button
                             type="primary"
                             style={{ marginBottom: 16 }}
-                            onClick={() =>
-                                setShowPurchaseRequestLineDrawer(true)
-                            }
+                            onClick={() => setShowPurchaseOrderLineDrawer(true)}
                         >
                             Thêm mặt hàng
                         </Button>
                     </div>
                 )}
             </Form>
-            {showPurchaseRequestLineDrawer && (
+
+            {showPurchaseOrderLineDrawer && (
                 <MyPurchaseRequestLineDrawer
-                    open={showPurchaseRequestLineDrawer}
+                    open={showPurchaseOrderLineDrawer}
                     handleGetRespectiveLines={handleGetRespectiveLines}
-                    onClose={() => setShowPurchaseRequestLineDrawer(false)}
+                    onClose={() => setShowPurchaseOrderLineDrawer(false)}
                     pr_id={open?._id}
-                    getPrs={getPrs}
+                    getPos={getPos}
                 />
             )}
             <Table
@@ -788,7 +940,7 @@ const MyDrawer = ({ open, onClose, getPrs }) => {
                 size="small"
                 rowKey={(record) => record._id}
                 scroll={{ x: 'max-content' }}
-                dataSource={pr_lines.map((i) => {
+                dataSource={po_lines.map((i) => {
                     return {
                         ...i,
                         product: `${
@@ -803,21 +955,6 @@ const MyDrawer = ({ open, onClose, getPrs }) => {
                                 : i.length && i.width && !i.height
                                 ? `${i.length} x ${i.width}`
                                 : `${i.length} x ${i.width} x ${i.height}`,
-                        used_for_customer_contract:
-                            open?.customer_id?._id && open?.contract_code
-                                ? `${open?.customer_id?.short_name} - ${open?.contract_code}`
-                                : !open?.customer && !open?.contract_code
-                                ? ''
-                                : `${
-                                      open?.customer_id?.short_name ||
-                                      open?.contract_code
-                                  }`,
-                        tong_ton: i.kho_tong + i.kho_an_phu + i.kho_tan_long,
-                        theoritical_quantity:
-                            i.contract_quantity -
-                            i.kho_tong +
-                            i.kho_an_phu +
-                            i.kho_tan_long,
                     }
                 })}
             />
@@ -830,7 +967,7 @@ const MyPurchaseRequestLineDrawer = ({
     onClose,
     pr_id,
     handleGetRespectiveLines,
-    getPrs,
+    getPos,
 }) => {
     const [form] = Form.useForm()
     const [loading, setLoading] = useState(false)
@@ -844,12 +981,9 @@ const MyPurchaseRequestLineDrawer = ({
                 length,
                 width,
                 height,
-                contract_quantity,
-                need_quantity,
-                loss_rate,
-                kho_tong,
-                kho_tan_long,
-                kho_an_phu,
+                quantity,
+                price_unit,
+                sub_total,
                 note,
             } = form.getFieldsValue()
             if (!product_id)
@@ -857,38 +991,32 @@ const MyPurchaseRequestLineDrawer = ({
 
             setLoading(true)
             if (open?._id) {
-                await axios.patch(`/api/update-pr-line/${open._id}`, {
+                await axios.patch(`/api/update-po-line/${open._id}`, {
                     product_id,
                     uom_id,
                     length,
                     width,
                     height,
-                    contract_quantity,
-                    need_quantity,
-                    loss_rate,
-                    kho_tong,
-                    kho_tan_long,
-                    kho_an_phu,
+                    quantity,
+                    price_unit,
+                    sub_total,
                     note,
                 })
             } else {
-                await axios.post('/api/create-pr-line', {
+                await axios.post('/api/create-po-line', {
                     order_id: pr_id,
                     product_id,
                     uom_id,
                     length,
                     width,
                     height,
-                    contract_quantity,
-                    need_quantity,
-                    loss_rate,
-                    kho_tong,
-                    kho_tan_long,
-                    kho_an_phu,
+                    quantity,
+                    price_unit,
+                    sub_total,
                     note,
                 })
             }
-            await getPrs(pr_id)
+            await getPos(pr_id)
             onClose()
             await handleGetRespectiveLines()
         } catch (error) {
@@ -899,23 +1027,12 @@ const MyPurchaseRequestLineDrawer = ({
         }
     }
 
-    const calculateTotalStock = () => {
-        const contract_quantity = form.getFieldValue('contract_quantity')
-        const loss_rate = form.getFieldValue('loss_rate')
+    const calculatePrice = () => {
+        const quantity = form.getFieldValue('quantity')
+        const price_unit = form.getFieldValue('price_unit')
 
-        const kho_tong = form.getFieldValue('kho_tong')
-        const kho_tan_long = form.getFieldValue('kho_tan_long')
-        const kho_an_phu = form.getFieldValue('kho_an_phu')
-        const gia_tri_tong = kho_an_phu + kho_tong + kho_tan_long
-        form.setFieldValue('tong_ton', gia_tri_tong)
-        form.setFieldValue(
-            'theoritical_quantity',
-            contract_quantity - gia_tri_tong
-        )
-        form.setFieldValue(
-            'need_quantity',
-            contract_quantity - gia_tri_tong + loss_rate
-        )
+        const sub_total = quantity * price_unit
+        form.setFieldValue('sub_total', sub_total)
     }
 
     useEffect(() => {
@@ -925,27 +1042,19 @@ const MyPurchaseRequestLineDrawer = ({
             form.setFieldValue('width', open?.width)
             form.setFieldValue('length', open?.length)
             form.setFieldValue('height', open?.height)
-            form.setFieldValue('contract_quantity', open?.contract_quantity)
-            form.setFieldValue('loss_rate', open?.loss_rate)
-            form.setFieldValue('kho_tong', open?.kho_tong)
-            form.setFieldValue('kho_an_phu', open?.kho_an_phu)
-            form.setFieldValue('kho_tan_long', open?.kho_tan_long)
-            form.setFieldValue('need_quantity', open?.need_quantity)
+            form.setFieldValue('quantity', open?.quantity)
+            form.setFieldValue('price_unit', open?.price_unit)
+            form.setFieldValue('sub_total', open?.sub_total)
             form.setFieldValue('note', open?.note)
 
-            calculateTotalStock()
+            calculatePrice()
         } else {
             form.setFieldValue('width', 0)
             form.setFieldValue('length', 0)
             form.setFieldValue('height', 0)
-            form.setFieldValue('contract_quantity', 0)
-            form.setFieldValue('loss_rate', 0)
-            form.setFieldValue('kho_tong', 0)
-            form.setFieldValue('kho_an_phu', 0)
-            form.setFieldValue('kho_tan_long', 0)
-            form.setFieldValue('tong_ton', 0)
-            form.setFieldValue('need_quantity', 0)
-            form.setFieldValue('theoritical_quantity', 0)
+            form.setFieldValue('quantity', 0)
+            form.setFieldValue('price_unit', 0)
+            form.setFieldValue('sub_total', 0)
         }
     }, [])
 
@@ -1108,197 +1217,82 @@ const MyPurchaseRequestLineDrawer = ({
                         />
                     </Form.Item>
                 </Space>
-                <Space>
-                    <Form.Item
-                        name="contract_quantity"
-                        label="Số lượng theo hợp đồng"
-                    >
-                        <InputNumber
-                            onChange={calculateTotalStock}
-                            inputMode="decimal"
-                            style={{ width: '100%' }}
-                            formatter={(value) =>
-                                value
-                                    ? value
-                                          .toString()
-                                          .replace(/\B(?=(\d{3})+(?!\d))/g, ',') // thousands with comma
-                                    : ''
-                            }
-                            parser={(value) =>
-                                value
-                                    ? parseFloat(
-                                          value.toString().replace(/,/g, '')
-                                      ) // remove commas
-                                    : 0
-                            }
-                            min={0}
-                        />
-                    </Form.Item>
-                    <Form.Item name="kho_tong" label="Kho Tổng">
-                        <InputNumber
-                            inputMode="decimal"
-                            onChange={calculateTotalStock}
-                            style={{ width: '100%' }}
-                            formatter={(value) =>
-                                value
-                                    ? value
-                                          .toString()
-                                          .replace(/\B(?=(\d{3})+(?!\d))/g, ',') // thousands with comma
-                                    : ''
-                            }
-                            parser={(value) =>
-                                value
-                                    ? parseFloat(
-                                          value.toString().replace(/,/g, '')
-                                      ) // remove commas
-                                    : 0
-                            }
-                            min={0}
-                        />
-                    </Form.Item>
-                    <Form.Item name="kho_tan_long" label="Kho Tân Long">
-                        <InputNumber
-                            onChange={calculateTotalStock}
-                            inputMode="decimal"
-                            style={{ width: '100%' }}
-                            formatter={(value) =>
-                                value
-                                    ? value
-                                          .toString()
-                                          .replace(/\B(?=(\d{3})+(?!\d))/g, ',') // thousands with comma
-                                    : ''
-                            }
-                            parser={(value) =>
-                                value
-                                    ? parseFloat(
-                                          value.toString().replace(/,/g, '')
-                                      ) // remove commas
-                                    : 0
-                            }
-                            min={0}
-                        />
-                    </Form.Item>
-                    <Form.Item name="kho_an_phu" label="Kho An Phú">
-                        <InputNumber
-                            onChange={calculateTotalStock}
-                            inputMode="decimal"
-                            style={{ width: '100%' }}
-                            formatter={(value) =>
-                                value
-                                    ? value
-                                          .toString()
-                                          .replace(/\B(?=(\d{3})+(?!\d))/g, ',') // thousands with comma
-                                    : ''
-                            }
-                            parser={(value) =>
-                                value
-                                    ? parseFloat(
-                                          value.toString().replace(/,/g, '')
-                                      ) // remove commas
-                                    : 0
-                            }
-                            min={0}
-                        />
-                    </Form.Item>
-                    <Form.Item name="tong_ton" label="Tổng tồn">
-                        <InputNumber
-                            disabled
-                            inputMode="decimal"
-                            readOnly
-                            style={{ width: '100%' }}
-                            formatter={(value) =>
-                                value
-                                    ? value
-                                          .toString()
-                                          .replace(/\B(?=(\d{3})+(?!\d))/g, ',') // thousands with comma
-                                    : ''
-                            }
-                            parser={(value) =>
-                                value
-                                    ? parseFloat(
-                                          value.toString().replace(/,/g, '')
-                                      ) // remove commas
-                                    : 0
-                            }
-                            min={0}
-                        />
-                    </Form.Item>
-                </Space>
-                <Space>
-                    <Form.Item
-                        name="theoritical_quantity"
-                        label="Số lường cần thêm"
-                    >
-                        <InputNumber
-                            disabled
-                            inputMode="decimal"
-                            readOnly
-                            style={{ width: '100%' }}
-                            formatter={(value) =>
-                                value
-                                    ? value
-                                          .toString()
-                                          .replace(/\B(?=(\d{3})+(?!\d))/g, ',') // thousands with comma
-                                    : ''
-                            }
-                            parser={(value) =>
-                                value
-                                    ? parseFloat(
-                                          value.toString().replace(/,/g, '')
-                                      ) // remove commas
-                                    : 0
-                            }
-                            min={0}
-                        />
-                    </Form.Item>
-                    <Form.Item name="loss_rate" label="Tỷ lệ hao hụt">
-                        <InputNumber
-                            inputMode="decimal"
-                            style={{ width: '100%' }}
-                            onChange={calculateTotalStock}
-                            formatter={(value) =>
-                                value
-                                    ? value
-                                          .toString()
-                                          .replace(/\B(?=(\d{3})+(?!\d))/g, ',') // thousands with comma
-                                    : ''
-                            }
-                            parser={(value) =>
-                                value
-                                    ? parseFloat(
-                                          value.toString().replace(/,/g, '')
-                                      ) // remove commas
-                                    : 0
-                            }
-                            min={0}
-                        />
-                    </Form.Item>
-                    <Form.Item name="need_quantity" label="Số lượng cần mua">
-                        <InputNumber
-                            inputMode="decimal"
-                            disabled
-                            style={{ width: '100%' }}
-                            formatter={(value) =>
-                                value
-                                    ? value
-                                          .toString()
-                                          .replace(/\B(?=(\d{3})+(?!\d))/g, ',') // thousands with comma
-                                    : ''
-                            }
-                            parser={(value) =>
-                                value
-                                    ? parseFloat(
-                                          value.toString().replace(/,/g, '')
-                                      ) // remove commas
-                                    : 0
-                            }
-                            min={0}
-                        />
-                    </Form.Item>
-                </Space>
-                <Form.Item name="note" label="Ghi chú">
+                <Form.Item name="note" label="Chất lượng tiêu chuẩn">
                     <Input className="w-full" />
                 </Form.Item>
+                <Space>
+                    <Form.Item name="quantity" label="Số lượng" required>
+                        <InputNumber
+                            onChange={calculatePrice}
+                            inputMode="decimal"
+                            style={{ width: '100%' }}
+                            formatter={(value) =>
+                                value
+                                    ? value
+                                          .toString()
+                                          .replace(/\B(?=(\d{3})+(?!\d))/g, ',') // thousands with comma
+                                    : ''
+                            }
+                            parser={(value) =>
+                                value
+                                    ? parseFloat(
+                                          value.toString().replace(/,/g, '')
+                                      ) // remove commas
+                                    : 0
+                            }
+                            min={0}
+                        />
+                    </Form.Item>
+                    <Form.Item
+                        name="price_unit"
+                        required
+                        label="Đơn giá (không gồm thuế)"
+                    >
+                        <InputNumber
+                            inputMode="decimal"
+                            onChange={calculatePrice}
+                            style={{ width: '100%' }}
+                            formatter={(value) =>
+                                value
+                                    ? value
+                                          .toString()
+                                          .replace(/\B(?=(\d{3})+(?!\d))/g, ',') // thousands with comma
+                                    : ''
+                            }
+                            parser={(value) =>
+                                value
+                                    ? parseFloat(
+                                          value.toString().replace(/,/g, '')
+                                      ) // remove commas
+                                    : 0
+                            }
+                            min={0}
+                        />
+                    </Form.Item>
+                    <Form.Item name="sub_total" label="Thành tiền">
+                        <InputNumber
+                            readOnly
+                            disabled
+                            inputMode="decimal"
+                            style={{ width: '100%' }}
+                            formatter={(value) =>
+                                value
+                                    ? value
+                                          .toString()
+                                          .replace(/\B(?=(\d{3})+(?!\d))/g, ',') // thousands with comma
+                                    : ''
+                            }
+                            parser={(value) =>
+                                value
+                                    ? parseFloat(
+                                          value.toString().replace(/,/g, '')
+                                      ) // remove commas
+                                    : 0
+                            }
+                            min={0}
+                        />
+                    </Form.Item>
+                </Space>
             </Form>
         </Modal>
     )

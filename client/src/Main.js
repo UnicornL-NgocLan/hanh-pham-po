@@ -8,6 +8,7 @@ import PurchaseRequest from './pages/PurchaseRequest.js'
 import { useZustand } from './zustand.js'
 import axios from 'axios'
 import PurchaseRequestSequence from './pages/PurchaseRequestSequence.js'
+import PurchaseOrder from './pages/PurchaseOrder.js'
 
 const Main = () => {
     const [loading, setLoading] = useState(false)
@@ -17,6 +18,7 @@ const Main = () => {
         setUomState,
         setPrState,
         setPrSequenceState,
+        setPoState,
     } = useZustand()
 
     const handleFetchData = async () => {
@@ -28,6 +30,7 @@ const Main = () => {
                 axios.get('/api/get-uoms'),
                 axios.get('/api/get-prs'),
                 axios.get('/api/get-pr-sequences'),
+                axios.get('/api/get-pos'),
             ])
 
             setPartnerState(result[0].data.data)
@@ -35,6 +38,7 @@ const Main = () => {
             setUomState(result[2].data.data)
             setPrState(result[3].data.data)
             setPrSequenceState(result[4].data.data)
+            setPoState(result[5].data.data)
         } catch (error) {
             console.log(error)
             alert(error?.response?.data?.msg || error)
@@ -63,6 +67,7 @@ const Main = () => {
                         path="purchase-request-sequence"
                         element={<PurchaseRequestSequence />}
                     />
+                    <Route path="purchase-order" element={<PurchaseOrder />} />
                 </Route>
             </Routes>
         </BrowserRouter>

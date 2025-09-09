@@ -6,6 +6,7 @@ import { FaRegUser } from 'react-icons/fa6'
 import { IoIosWater } from 'react-icons/io'
 import { VscGitPullRequestNewChanges } from 'react-icons/vsc'
 import { TbHexagonNumber3Filled } from 'react-icons/tb'
+import { IoDocumentTextSharp } from 'react-icons/io5'
 const { Content, Sider } = Layout
 
 const siderStyle = {
@@ -63,6 +64,14 @@ const App = () => {
             label: 'Yêu cầu mua hàng',
             onClick: () => {
                 handleNavigate('/purchase-request', 4)
+            },
+        },
+        {
+            key: 6,
+            icon: <IoDocumentTextSharp />,
+            label: 'Đơn mua hàng',
+            onClick: () => {
+                handleNavigate('/purchase-order', 6)
             },
         },
         {
