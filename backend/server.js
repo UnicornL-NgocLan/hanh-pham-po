@@ -1,4 +1,4 @@
-require('@dotenvx/dotenvx').config()
+require('dotenv').config()
 const morgan = require('morgan')
 const express = require('express')
 const helmet = require('helmet')
