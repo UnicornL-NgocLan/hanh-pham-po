@@ -9,6 +9,7 @@ export const useZustand = create((set) => ({
     pr_lines: [],
     pos: [],
     po_lines: [],
+    contracts: [],
     setProductState: (value) => set({ products: value }),
     setPartnerState: (value) => set({ partners: value }),
     setUomState: (value) => set({ uoms: value }),
@@ -17,4 +18,5 @@ export const useZustand = create((set) => ({
     setPrLineState: (value) => set({ pr_lines: value }),
     setPoState: (value) => set({ pos: value }),
     setPoLineState: (value) => set({ po_lines: value }),
+    setContractState: (value) => set({ contracts: value }),
 }))

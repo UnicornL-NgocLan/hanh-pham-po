@@ -9,6 +9,7 @@ import {
     Statistic,
     DatePicker,
     Tag,
+    Tooltip,
 } from 'antd'
 import axios from 'axios'
 import { Table, Modal, InputNumber } from 'antd'
@@ -16,7 +17,7 @@ import { FaTrash } from 'react-icons/fa'
 import { useZustand } from '../zustand.js'
 import moment from 'moment'
 import Highlighter from 'react-highlight-words'
-import { SearchOutlined } from '@ant-design/icons'
+import { DeleteFilled, SearchOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { IoPrint } from 'react-icons/io5'
 import { MdEdit } from 'react-icons/md'
@@ -24,15 +25,18 @@ import {
     exportPurchaseOrderToExcel,
     exportPurchaseRequestToExcel,
 } from '../utils/createExcelFile.js'
+import { exportSummaryExcelFile } from '../utils/exportSummaryExcelFile.js'
 
 const PurchaseOrder = () => {
     const [showDrawer, setShowDrawer] = useState(false)
     const { setPoState, pos } = useZustand()
     const [data, setData] = useState([])
     const [searchText, setSearchText] = useState('')
+    const [loading, setLoading] = useState(false)
     const [searchedColumn, setSearchedColumn] = useState('')
     const searchInput = useRef(null)
     const [printing, setPrinting] = useState(false)
+    const [selectedRowKeys, setSelectedRowKeys] = useState([])
 
     const getPos = async (id = false) => {
         try {
@@ -65,18 +69,105 @@ const PurchaseOrder = () => {
         setSearchText('')
     }
 
-    const handlePrint = async (record) => {
+    const handleDelete = async (record) => {
+        try {
+            if (window.confirm('Bạn có thực sự muốn xóa ?')) {
+                await axios.delete(`/api/delete-po/${record._id}`)
+                const { data } = await axios.get('/api/get-pos')
+                setPoState(data.data)
+                setData(data.data)
+                alert('Đã xóa thành công!')
+            }
+        } catch (error) {
+            console.log(error)
+            alert(error?.response?.data?.msg || error)
+        }
+    }
+
+    const handlePrint = async (record, isPrintPO) => {
         try {
             if (printing) return
             if (!record?._id) return alert('Không tồn tại chứng từ để in')
             setPrinting(true)
             const { data } = await axios.get(`/api/get-po-lines/${record?._id}`)
-            await exportPurchaseOrderToExcel(record, data.data)
+            if (isPrintPO) {
+                await exportPurchaseOrderToExcel(record, data.data)
+            } else {
+                await exportPurchaseRequestToExcel(record, data.data)
+            }
         } catch (error) {
             console.log(error)
             alert(error?.response?.data?.msg || error)
         } finally {
             setPrinting(false)
+        }
+    }
+
+    const handleExportSummaryFile = async () => {
+        try {
+            if (loading) return
+            setLoading(true)
+            const list = selectedRowKeys.map((i) =>
+                axios.get(`/api/get-po-lines/${i}`)
+            )
+
+            const result = await Promise.all(list)
+            const finalList = []
+            for (let i = 0; i < result.length; i++) {
+                const innerData = result[i].data.data.map((item) => {
+                    return { ...item, po: result[i].data.po }
+                })
+                finalList.push(...innerData)
+            }
+
+            let processedData = []
+            for (let i = 0; i < finalList.length; i++) {
+                const month =
+                    moment(finalList[i]?.po?.date).add(7, 'hours').month() + 1
+                const stt = finalList[i]?.po?.pr_name?.split('/')[0]?.trim()
+                const ncc = finalList[i]?.po?.partner_id?.code.trim()
+                const ncc_short_name =
+                    finalList[i]?.po?.partner_id?.short_name.trim()
+                const so_don_hang = finalList[i]?.po?.name
+                const product_name = finalList[i]?.product_id?.name
+                const ngay_don_hang = moment(finalList[i]?.po?.date_ordered)
+                    .add(7, 'hours')
+                    .format('DD/MM/YYYY')
+                const ngay_nhan_hang = finalList[i]?.po?.date_deliveried
+                    ? moment(finalList[i]?.po?.date_deliveried)
+                          .add(7, 'hours')
+                          .format('DD/MM/YYYY')
+                    : 'thông báo sau'
+                const ordered_qty = finalList[i]?.quantity
+                const hop_dong = finalList[i]?.po?.contract_id?.code
+                const khach_hang = finalList[i]?.po?.buyer_id?.short_name
+                const so_de_nghi = finalList[i]?.po?.pr_name || ''
+                const can_cu = `Căn cứ vào bảng đề nghị mua vật tư: Số đề nghị ${so_de_nghi} của Phòng Kinh Doanh`
+                processedData.push({
+                    Tháng: month,
+                    STT: stt,
+                    NCC: ncc,
+                    'Số Đơn Hàng': so_don_hang,
+                    'Nhà cung cấp': ncc_short_name,
+                    'Tên Hàng': product_name,
+                    'Ngày đơn hàng': ngay_don_hang,
+                    'Ngày nhận hàng': ngay_nhan_hang,
+                    'Số lượng đặt': ordered_qty,
+                    'Số lượng nhận': 0,
+                    'Số lượng chưa nhận': 0,
+                    'NHẬN HÀNG thực tế': 0,
+                    'Hợp đồng': hop_dong,
+                    'Khách hàng': khach_hang,
+                    'Số đề nghị': so_de_nghi,
+                    'Căn cứ': can_cu,
+                })
+            }
+            await exportSummaryExcelFile(processedData)
+        } catch (error) {
+            console.log(error)
+            alert(error?.response?.data?.msg || error)
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -193,22 +284,48 @@ const PurchaseOrder = () => {
 
     const columns = [
         {
-            title: 'Mã',
+            title: 'Mã ĐN',
+            dataIndex: 'pr_name',
+            key: 'pr_name',
+            render: (text) => <span>{text}</span>,
+            ...getColumnSearchProps('pr_name'),
+        },
+        {
+            title: 'Mã ĐH',
             dataIndex: 'name',
             key: 'name',
             render: (text) => <span>{text}</span>,
             ...getColumnSearchProps('name'),
         },
         {
+            title: 'Hợp đồng',
+            dataIndex: 'contract',
+            key: 'contract',
+            render: (text) => <span>{text}</span>,
+            ...getColumnSearchProps('contract'),
+        },
+        {
             title: 'Ngày đặt hàng',
             dataIndex: 'date_ordered',
             key: 'date_ordered',
             align: 'right',
-            width: 130,
             sorter: (a, b) => moment(a.date_ordered) - moment(b.date_ordered),
             render: (value) => (
                 <span>{moment(value).format('DD/MM/YYYY')}</span>
             ),
+        },
+        {
+            title: 'Ngày giao hàng',
+            dataIndex: 'date_deliveried',
+            key: 'date_deliveried',
+            align: 'right',
+            sorter: (a, b) =>
+                moment(a.date_deliveried) - moment(b.date_deliveried),
+            render: (value) => {
+                return value ? (
+                    <span>{moment(value).format('DD/MM/YYYY')}</span>
+                ) : undefined
+            },
         },
         {
             title: 'Nhà cung cấp',
@@ -216,20 +333,6 @@ const PurchaseOrder = () => {
             key: 'partner',
             render: (text) => <span>{text}</span>,
             ...getColumnSearchProps('partner'),
-        },
-        {
-            title: 'Khách hàng',
-            dataIndex: 'buyer',
-            key: 'buyer',
-            render: (text) => <span>{text}</span>,
-            ...getColumnSearchProps('buyer'),
-        },
-        {
-            title: 'Đề nghị mua hàng',
-            dataIndex: 'pr',
-            key: 'pr',
-            render: (text) => <span>{text}</span>,
-            ...getColumnSearchProps('pr'),
         },
         {
             title: 'Tiền không thuế',
@@ -263,9 +366,10 @@ const PurchaseOrder = () => {
             title: 'Hành động',
             key: 'action',
             width: 100,
+            fixed: 'right',
             align: 'center',
             render: (_, record) => (
-                <Space size="middle">
+                <Space size="small">
                     <Button
                         onClick={() => setShowDrawer(record)}
                         size="small"
@@ -273,17 +377,46 @@ const PurchaseOrder = () => {
                     >
                         <MdEdit />
                     </Button>
+                    <Tooltip title="In đề nghị mua hàng">
+                        <Button
+                            onClick={() => handlePrint(record, false)}
+                            size="small"
+                            disabled={printing}
+                        >
+                            <IoPrint />
+                        </Button>
+                    </Tooltip>
+                    <Tooltip title="In đơn mua hàng">
+                        <Button
+                            type="primary"
+                            onClick={() => handlePrint(record, true)}
+                            size="small"
+                            disabled={printing}
+                        >
+                            <IoPrint />
+                        </Button>
+                    </Tooltip>
                     <Button
-                        onClick={() => handlePrint(record)}
+                        danger
+                        onClick={() => handleDelete(record)}
                         size="small"
                         disabled={printing}
                     >
-                        <IoPrint />
+                        <DeleteFilled />
                     </Button>
                 </Space>
             ),
         },
     ]
+
+    const onSelectChange = (newSelectedRowKeys) => {
+        setSelectedRowKeys(newSelectedRowKeys)
+    }
+
+    const rowSelection = {
+        selectedRowKeys,
+        onChange: onSelectChange,
+    }
 
     useEffect(() => {
         setData(pos)
@@ -291,22 +424,35 @@ const PurchaseOrder = () => {
 
     return (
         <div>
-            <Button
-                type="primary"
-                onClick={() => setShowDrawer(true)}
-                style={{ marginBottom: 16 }}
-            >
-                Tạo
-            </Button>
+            <Space>
+                <Button
+                    type="primary"
+                    onClick={() => setShowDrawer(true)}
+                    style={{ marginBottom: 16 }}
+                >
+                    Tạo
+                </Button>
+                {selectedRowKeys.length > 0 && (
+                    <Button
+                        onClick={handleExportSummaryFile}
+                        style={{ marginBottom: 16 }}
+                    >
+                        Xuất file tổng hợp
+                    </Button>
+                )}
+            </Space>
             <Table
                 columns={columns}
+                rowSelection={rowSelection}
                 size="small"
                 rowKey={(record) => record._id}
+                scroll={{ x: 'max-content' }}
                 dataSource={data.map((i) => {
                     return {
                         ...i,
-                        partner: i?.partner_id?.name,
-                        buyer: i?.buyer_id?.name,
+                        partner: i?.partner_id?.short_name,
+                        buyer: i?.buyer_id?.short_name,
+                        contract: i?.contract_id?.code,
                         pr: i?.pr_id?.name,
                     }
                 })}
@@ -332,11 +478,11 @@ const MyDrawer = ({ open, onClose, getPos }) => {
     const searchInput = useRef(null)
     const [showPurchaseOrderLineDrawer, setShowPurchaseOrderLineDrawer] =
         useState(false)
-    const { partners, po_lines, setPoLineState, prs } = useZustand()
+    const { partners, po_lines, setPoLineState, contracts } = useZustand()
 
     const handleGetRespectiveLines = async () => {
         try {
-            if (!open?._id) return
+            if (!open?._id) return setPoLineState([])
             setLoading(true)
             const { data } = await axios.get(`/api/get-po-lines/${open?._id}`)
             setPoLineState(data.data)
@@ -352,11 +498,14 @@ const MyDrawer = ({ open, onClose, getPos }) => {
         try {
             const {
                 name,
-                replaced_for_contract,
-                pr_id,
+                replaced_contract_id,
+                pr_name,
                 quotation_date,
                 partner_id,
+                contract_id,
                 buyer_id,
+                date,
+                customer_id,
                 date_deliveried,
                 delivered_to,
                 loading_cost,
@@ -367,13 +516,16 @@ const MyDrawer = ({ open, onClose, getPos }) => {
             } = form.getFieldsValue()
 
             if (
-                !name ||
-                !replaced_for_contract ||
-                !pr_id ||
+                (!name && open?._id) ||
+                (!pr_name && open?._id) ||
+                !replaced_contract_id ||
+                !contract_id ||
                 !quotation_date ||
                 !partner_id ||
                 !buyer_id ||
-                !date_ordered
+                !date_ordered ||
+                !date ||
+                !customer_id
             )
                 return alert('Vui lòng nhập đầy đủ thông tin bắt buộc')
 
@@ -385,15 +537,18 @@ const MyDrawer = ({ open, onClose, getPos }) => {
             if (open?._id) {
                 await axios.patch(`/api/update-po/${open._id}`, {
                     name,
-                    replaced_for_contract,
-                    pr_id,
+                    replaced_contract_id,
+                    pr_name,
                     quotation_date,
                     partner_id,
                     buyer_id,
+                    contract_id,
+                    date,
                     date_deliveried,
                     delivered_to,
                     loading_cost,
                     transfer_cost,
+                    customer_id,
                     date_ordered,
                     payment_method_and_due_date,
                     active,
@@ -401,11 +556,14 @@ const MyDrawer = ({ open, onClose, getPos }) => {
             } else {
                 const { data } = await axios.post('/api/create-po', {
                     name,
-                    replaced_for_contract,
-                    pr_id,
+                    replaced_contract_id,
+                    pr_name,
                     quotation_date,
                     partner_id,
+                    contract_id,
+                    customer_id,
                     buyer_id,
+                    date,
                     date_deliveried,
                     delivered_to,
                     loading_cost,
@@ -435,13 +593,16 @@ const MyDrawer = ({ open, onClose, getPos }) => {
         if (open?._id) {
             form.setFieldValue('name', open?.name)
             form.setFieldValue(
-                'replaced_for_contract',
-                open?.replaced_for_contract
+                'replaced_contract_id',
+                open?.replaced_contract_id?._id
             )
+            form.setFieldValue('contract_id', open?.contract_id?._id)
             form.setFieldValue('partner_id', open?.partner_id?._id)
+            form.setFieldValue('customer_id', open?.customer_id?._id)
             form.setFieldValue('buyer_id', open?.buyer_id?._id)
-            form.setFieldValue('pr_id', open?.pr_id?._id)
+            form.setFieldValue('pr_name', open?.pr_name)
             form.setFieldValue('date_ordered', dayjs(open?.date_ordered))
+            form.setFieldValue('date', dayjs(open?.date))
             form.setFieldValue('quotation_date', dayjs(open?.quotation_date))
             form.setFieldValue(
                 'date_deliveried',
@@ -455,6 +616,10 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                 'payment_method_and_due_date',
                 open?.payment_method_and_due_date
             )
+        } else {
+            form.setFieldValue('date', dayjs(new Date()))
+            form.setFieldValue('quotation_date', dayjs(new Date()))
+            form.setFieldValue('date_ordered', dayjs(new Date()))
         }
     }, [open])
 
@@ -584,6 +749,7 @@ const MyDrawer = ({ open, onClose, getPos }) => {
         {
             title: 'Sản phẩm',
             dataIndex: 'product',
+            width: 200,
             key: 'product',
             render: (text) => <span>{text}</span>,
             ...getColumnSearchProps('product'),
@@ -602,12 +768,37 @@ const MyDrawer = ({ open, onClose, getPos }) => {
         },
         {
             title: 'Chất lượng tiêu chuẩn',
-            dataIndex: 'note',
-            key: 'note',
+            dataIndex: 'standard',
+            width: 180,
+            key: 'standard',
             render: (text) => <span>{text}</span>,
         },
         {
-            title: 'Số lượng',
+            title: 'SL theo HĐ',
+            dataIndex: 'contract_quantity',
+            key: 'contract_quantity',
+            render: (value) => <span>{Intl.NumberFormat().format(value)}</span>,
+        },
+        {
+            title: 'Kho tổng',
+            dataIndex: 'kho_tong',
+            key: 'kho_tong',
+            render: (value) => <span>{Intl.NumberFormat().format(value)}</span>,
+        },
+        {
+            title: 'SL cần thêm',
+            dataIndex: 'sl_can_them',
+            key: 'sl_can_them',
+            render: (value) => <span>{Intl.NumberFormat().format(value)}</span>,
+        },
+        {
+            title: '% hao hụt',
+            dataIndex: 'loss_rate',
+            key: 'loss_rate',
+            render: (value) => <span>{Intl.NumberFormat().format(value)}</span>,
+        },
+        {
+            title: 'SL cần mua',
             dataIndex: 'quantity',
             key: 'quantity',
             render: (value) => <span>{Intl.NumberFormat().format(value)}</span>,
@@ -624,9 +815,15 @@ const MyDrawer = ({ open, onClose, getPos }) => {
             key: 'sub_total',
             render: (value) => <span>{Intl.NumberFormat().format(value)}</span>,
         },
-
+        {
+            title: 'Ghi chú',
+            dataIndex: 'note',
+            key: 'note',
+            render: (text) => <span>{text}</span>,
+        },
         {
             title: 'Hành động',
+            fixed: 'right',
             fixed: 'right',
             key: 'action',
             render: (_, record) => (
@@ -701,16 +898,22 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                 <Space.Compact style={{ display: 'flex' }}>
                     <Form.Item
                         style={{ flex: 1 }}
-                        name="name"
-                        label="Mã"
-                        rules={[{ required: true, message: 'Nhập đầy đủ!' }]}
+                        name="pr_name"
+                        label="Mã đề nghị mua hàng"
                     >
-                        <Input className="w-full" readOnly disabled />
+                        <Input className="w-full" disabled={!open?._id} />
                     </Form.Item>
                     <Form.Item
                         style={{ flex: 1 }}
-                        name="pr_id"
-                        label="Đề nghị mua hàng"
+                        name="name"
+                        label="Mã đơn mua hàng"
+                    >
+                        <Input className="w-full" disabled={!open?._id} />
+                    </Form.Item>
+                    <Form.Item
+                        style={{ flex: 1 }}
+                        name="contract_id"
+                        label="Hợp đồng"
                         rules={[
                             {
                                 required: true,
@@ -720,47 +923,59 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                     >
                         <Select
                             showSearch
-                            onChange={(e, record) => {
-                                const poName = record.label.replace(
-                                    'DN TS',
-                                    'DH'
+                            onChange={(e) => {
+                                const current_contract = contracts.find(
+                                    (i) => i._id === e
                                 )
-                                form.setFieldValue('name', poName)
+                                if (current_contract) {
+                                    form.setFieldValue(
+                                        'buyer_id',
+                                        current_contract?.partner_id?._id
+                                    )
+                                }
                             }}
                             filterOption={(input, option) =>
                                 (option?.label ?? '')
                                     .toLowerCase()
                                     .includes(input.toLowerCase())
                             }
-                            options={prs.map((i) => {
-                                return { value: i._id, label: i.name }
+                            options={contracts.map((i) => {
+                                return { value: i._id, label: i.code }
                             })}
                         />
                     </Form.Item>
-                </Space.Compact>
-                <Form.Item
-                    name="replaced_for_contract"
-                    label="Thay thế cho phụ kiện của Hợp đồng nguyên tắc"
-                    rules={[{ required: true, message: 'Nhập đầy đủ!' }]}
-                >
-                    <Input className="w-full" />
-                </Form.Item>
-                <Space.Compact style={{ display: 'flex' }}>
                     <Form.Item
-                        name="quotation_date"
                         style={{ flex: 1 }}
-                        label="Ngày báo giá"
-                        rules={[{ required: true, message: 'Nhập đầy đủ!' }]}
+                        name="replaced_contract_id"
+                        label="Thay thế cho hợp đồng nguyên tắc"
+                        rules={[
+                            {
+                                required: true,
+                            },
+                        ]}
                     >
-                        <DatePicker style={{ width: '100%' }} />
-                    </Form.Item>
-                    <Form.Item
-                        name="date_ordered"
-                        style={{ flex: 1 }}
-                        label="Ngày đặt hàng"
-                        rules={[{ required: true, message: 'Nhập đầy đủ!' }]}
-                    >
-                        <DatePicker style={{ width: '100%' }} />
+                        <Select
+                            showSearch
+                            onChange={(e) => {
+                                const current_contract = contracts.find(
+                                    (i) => i._id === e
+                                )
+                                if (current_contract) {
+                                    form.setFieldValue(
+                                        'partner_id',
+                                        current_contract?.partner_id?._id
+                                    )
+                                }
+                            }}
+                            filterOption={(input, option) =>
+                                (option?.label ?? '')
+                                    .toLowerCase()
+                                    .includes(input.toLowerCase())
+                            }
+                            options={contracts.map((i) => {
+                                return { value: i._id, label: i.code }
+                            })}
+                        />
                     </Form.Item>
                 </Space.Compact>
                 <Space.Compact style={{ display: 'flex' }}>
@@ -772,6 +987,28 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                             {
                                 required: true,
                                 message: 'Hãy chọn nhà cung cấp',
+                            },
+                        ]}
+                    >
+                        <Select
+                            showSearch
+                            filterOption={(input, option) =>
+                                (option?.label ?? '')
+                                    .toLowerCase()
+                                    .includes(input.toLowerCase())
+                            }
+                            options={partners.map((i) => {
+                                return { value: i._id, label: i.name }
+                            })}
+                        />
+                    </Form.Item>
+                    <Form.Item
+                        style={{ flex: 1 }}
+                        name="customer_id"
+                        label="Công ty"
+                        rules={[
+                            {
+                                required: true,
                             },
                         ]}
                     >
@@ -813,12 +1050,38 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                 </Space.Compact>
                 <Space.Compact style={{ display: 'flex' }}>
                     <Form.Item
+                        name="date"
+                        style={{ flex: 1 }}
+                        label="Ngày đề nghị đặt hàng"
+                        rules={[{ required: true, message: 'Nhập đầy đủ!' }]}
+                    >
+                        <DatePicker style={{ width: '100%' }} />
+                    </Form.Item>
+                    <Form.Item
+                        name="quotation_date"
+                        style={{ flex: 1 }}
+                        label="Ngày báo giá"
+                        rules={[{ required: true, message: 'Nhập đầy đủ!' }]}
+                    >
+                        <DatePicker style={{ width: '100%' }} />
+                    </Form.Item>
+                    <Form.Item
+                        name="date_ordered"
+                        style={{ flex: 1 }}
+                        label="Ngày đặt hàng"
+                        rules={[{ required: true, message: 'Nhập đầy đủ!' }]}
+                    >
+                        <DatePicker style={{ width: '100%' }} />
+                    </Form.Item>
+                    <Form.Item
                         name="date_deliveried"
                         style={{ flex: 1 }}
                         label="Ngày giao hàng"
                     >
                         <DatePicker style={{ width: '100%' }} />
                     </Form.Item>
+                </Space.Compact>
+                <Space.Compact style={{ display: 'flex' }}>
                     <Form.Item
                         name="delivered_to"
                         label="Giao hàng đến"
@@ -826,8 +1089,6 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                     >
                         <Input className="w-full" />
                     </Form.Item>
-                </Space.Compact>
-                <Space.Compact style={{ display: 'flex' }}>
                     <Form.Item
                         name="loading_cost"
                         style={{ flex: 1 }}
@@ -858,7 +1119,7 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                         rules={[
                             {
                                 required: true,
-                                message: 'Hãy chọn đối tác',
+                                message: 'Hãy chọn trạng thái',
                             },
                         ]}
                     >
@@ -949,12 +1210,7 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                                 : ''
                         }${i?.product_id?.name}`,
                         uom: i?.uom_id?.name,
-                        quy_cach:
-                            !i.length && !i.height && !i.width
-                                ? ''
-                                : i.length && i.width && !i.height
-                                ? `${i.length} x ${i.width}`
-                                : `${i.length} x ${i.width} x ${i.height}`,
+                        sl_can_them: i.contract_quantity - i.kho_tong,
                     }
                 })}
             />
@@ -976,15 +1232,19 @@ const MyPurchaseRequestLineDrawer = ({
     const handleOk = async () => {
         try {
             const {
+                order_id,
                 product_id,
                 uom_id,
-                length,
-                width,
-                height,
+                quy_cach,
+                contract_quantity,
+                need_quantity,
+                kho_tong,
+                loss_rate,
+                note,
+                standard,
                 quantity,
                 price_unit,
                 sub_total,
-                note,
             } = form.getFieldsValue()
             if (!product_id)
                 return alert('Vui lòng nhập đầy đủ thông tin bắt buộc')
@@ -992,28 +1252,35 @@ const MyPurchaseRequestLineDrawer = ({
             setLoading(true)
             if (open?._id) {
                 await axios.patch(`/api/update-po-line/${open._id}`, {
+                    order_id,
                     product_id,
                     uom_id,
-                    length,
-                    width,
-                    height,
+                    quy_cach,
+                    contract_quantity,
+                    need_quantity,
+                    kho_tong,
+                    loss_rate,
+                    note,
+                    standard,
                     quantity,
                     price_unit,
                     sub_total,
-                    note,
                 })
             } else {
                 await axios.post('/api/create-po-line', {
                     order_id: pr_id,
                     product_id,
                     uom_id,
-                    length,
-                    width,
-                    height,
+                    quy_cach,
+                    contract_quantity,
+                    need_quantity,
+                    kho_tong,
+                    loss_rate,
+                    note,
+                    standard,
                     quantity,
                     price_unit,
                     sub_total,
-                    note,
                 })
             }
             await getPos(pr_id)
@@ -1039,24 +1306,37 @@ const MyPurchaseRequestLineDrawer = ({
         if (open?._id) {
             form.setFieldValue('product_id', open?.product_id?._id)
             form.setFieldValue('uom_id', open?.uom_id?._id)
-            form.setFieldValue('width', open?.width)
-            form.setFieldValue('length', open?.length)
-            form.setFieldValue('height', open?.height)
             form.setFieldValue('quantity', open?.quantity)
             form.setFieldValue('price_unit', open?.price_unit)
             form.setFieldValue('sub_total', open?.sub_total)
             form.setFieldValue('note', open?.note)
-
+            form.setFieldValue('standard', open?.standard)
+            form.setFieldValue('loss_rate', open?.loss_rate)
+            form.setFieldValue('kho_tong', open?.kho_tong)
+            form.setFieldValue('contract_quantity', open?.contract_quantity)
+            form.setFieldValue('quy_cach', open?.quy_cach)
+            calculateTotalStock()
             calculatePrice()
         } else {
-            form.setFieldValue('width', 0)
-            form.setFieldValue('length', 0)
-            form.setFieldValue('height', 0)
             form.setFieldValue('quantity', 0)
             form.setFieldValue('price_unit', 0)
             form.setFieldValue('sub_total', 0)
+            form.setFieldValue('contract_quantity', 0)
+            form.setFieldValue('loss_rate', 0)
+            form.setFieldValue('kho_tong', 0)
         }
     }, [])
+
+    const calculateTotalStock = () => {
+        const contract_quantity = form.getFieldValue('contract_quantity')
+        const loss_rate = form.getFieldValue('loss_rate')
+
+        const kho_tong = form.getFieldValue('kho_tong')
+        form.setFieldValue('theoritical_quantity', contract_quantity - kho_tong)
+        form.setFieldValue('quantity', contract_quantity - kho_tong + loss_rate)
+
+        calculatePrice()
+    }
 
     return (
         <Modal
@@ -1078,7 +1358,7 @@ const MyPurchaseRequestLineDrawer = ({
             >
                 <Space.Compact style={{ display: 'flex' }}>
                     <Form.Item
-                        style={{ flex: 5 }}
+                        style={{ flex: 4 }}
                         name="product_id"
                         label="Sản phẩm"
                         rules={[
@@ -1099,20 +1379,9 @@ const MyPurchaseRequestLineDrawer = ({
                                         'uom_id',
                                         respectiveProduct.uom_id?._id
                                     )
-
                                     form.setFieldValue(
-                                        'length',
-                                        respectiveProduct.length || 0
-                                    )
-
-                                    form.setFieldValue(
-                                        'width',
-                                        respectiveProduct.width || 0
-                                    )
-
-                                    form.setFieldValue(
-                                        'height',
-                                        respectiveProduct.height || 0
+                                        'quy_cach',
+                                        respectiveProduct.quy_cach
                                     )
                                 }
                             }}
@@ -1151,10 +1420,18 @@ const MyPurchaseRequestLineDrawer = ({
                             })}
                         />
                     </Form.Item>
+                    <Form.Item name="quy_cach" label="Quy cách">
+                        <Input className="w-full" />
+                    </Form.Item>
                 </Space.Compact>
-                <Space>
-                    <Form.Item name="length" label="Chiều dài">
+                <Space.Compact style={{ display: 'flex' }}>
+                    <Form.Item
+                        name="contract_quantity"
+                        label="Số lượng theo hợp đồng"
+                        style={{ flex: 1 }}
+                    >
                         <InputNumber
+                            onChange={calculateTotalStock}
                             inputMode="decimal"
                             style={{ width: '100%' }}
                             formatter={(value) =>
@@ -1174,9 +1451,14 @@ const MyPurchaseRequestLineDrawer = ({
                             min={0}
                         />
                     </Form.Item>
-                    <Form.Item name="width" label="Chiều rộng">
+                    <Form.Item
+                        name="kho_tong"
+                        label="Kho Tổng"
+                        style={{ flex: 1 }}
+                    >
                         <InputNumber
                             inputMode="decimal"
+                            onChange={calculateTotalStock}
                             style={{ width: '100%' }}
                             formatter={(value) =>
                                 value
@@ -1195,9 +1477,15 @@ const MyPurchaseRequestLineDrawer = ({
                             min={0}
                         />
                     </Form.Item>
-                    <Form.Item name="height" label="Chiều cao">
+                    <Form.Item
+                        style={{ flex: 1 }}
+                        name="theoritical_quantity"
+                        label="Số lường cần thêm"
+                    >
                         <InputNumber
+                            disabled
                             inputMode="decimal"
+                            readOnly
                             style={{ width: '100%' }}
                             formatter={(value) =>
                                 value
@@ -1216,12 +1504,38 @@ const MyPurchaseRequestLineDrawer = ({
                             min={0}
                         />
                     </Form.Item>
-                </Space>
-                <Form.Item name="note" label="Chất lượng tiêu chuẩn">
-                    <Input className="w-full" />
-                </Form.Item>
-                <Space>
-                    <Form.Item name="quantity" label="Số lượng" required>
+                    <Form.Item
+                        name="loss_rate"
+                        label="Tỷ lệ hao hụt"
+                        style={{ flex: 1 }}
+                    >
+                        <InputNumber
+                            inputMode="decimal"
+                            style={{ width: '100%' }}
+                            onChange={calculateTotalStock}
+                            formatter={(value) =>
+                                value
+                                    ? value
+                                          .toString()
+                                          .replace(/\B(?=(\d{3})+(?!\d))/g, ',') // thousands with comma
+                                    : ''
+                            }
+                            parser={(value) =>
+                                value
+                                    ? parseFloat(
+                                          value.toString().replace(/,/g, '')
+                                      ) // remove commas
+                                    : 0
+                            }
+                            min={0}
+                        />
+                    </Form.Item>
+                    <Form.Item
+                        name="quantity"
+                        label="Số lượng cần mua"
+                        required
+                        style={{ flex: 1 }}
+                    >
                         <InputNumber
                             onChange={calculatePrice}
                             inputMode="decimal"
@@ -1243,10 +1557,13 @@ const MyPurchaseRequestLineDrawer = ({
                             min={0}
                         />
                     </Form.Item>
+                </Space.Compact>
+                <Space.Compact style={{ display: 'flex' }}>
                     <Form.Item
                         name="price_unit"
                         required
                         label="Đơn giá (không gồm thuế)"
+                        style={{ flex: 1 }}
                     >
                         <InputNumber
                             inputMode="decimal"
@@ -1269,7 +1586,11 @@ const MyPurchaseRequestLineDrawer = ({
                             min={0}
                         />
                     </Form.Item>
-                    <Form.Item name="sub_total" label="Thành tiền">
+                    <Form.Item
+                        name="sub_total"
+                        label="Thành tiền"
+                        style={{ flex: 1 }}
+                    >
                         <InputNumber
                             readOnly
                             disabled
@@ -1292,7 +1613,19 @@ const MyPurchaseRequestLineDrawer = ({
                             min={0}
                         />
                     </Form.Item>
-                </Space>
+                </Space.Compact>
+                <Space.Compact style={{ display: 'flex' }}>
+                    <Form.Item
+                        name="standard"
+                        label="Chất lượng tiêu chuẩn"
+                        style={{ flex: 1 }}
+                    >
+                        <Input className="w-full" />
+                    </Form.Item>
+                    <Form.Item name="note" label="Ghi chú" style={{ flex: 1 }}>
+                        <Input className="w-full" />
+                    </Form.Item>
+                </Space.Compact>
             </Form>
         </Modal>
     )

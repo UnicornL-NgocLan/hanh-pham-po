@@ -492,6 +492,8 @@ export const exportPurchaseRequestToExcel = async (pr, data) => {
         'M',
         'N',
     ]
+
+    console.log(data)
     for (let i = 0; i < data.length; i++) {
         let rowNum = 10 + i + 1
         for (let j = 0; j < listOfColumn.length; j++) {
@@ -507,22 +509,17 @@ export const exportPurchaseRequestToExcel = async (pr, data) => {
                     cellValue = data[i]?.uom_id?.name
                     break
                 case 'D':
-                    cellValue =
-                        !data[i].length && !data[i].height && !data[i].width
-                            ? ''
-                            : data[i].length && data[i].width && !data[i].height
-                            ? `${data[i].length} x ${data[i].width}`
-                            : `${data[i].length} x ${data[i].width} x ${data[i].height}`
+                    cellValue = data[i]?.quy_cach
                     break
                 case 'E':
                     cellValue =
-                        pr?.customer_id?._id && pr?.contract_code
-                            ? `${pr?.customer_id?.short_name} - ${pr?.contract_code}`
-                            : !pr?.customer && !pr?.contract_code
+                        pr?.buyer_id && pr?.contract_id?.code
+                            ? `${pr?.buyer_id?.short_name} - ${pr?.contract_id?.code}`
+                            : !pr?.buyer_id && !pr?.contract_id?.code
                             ? ''
                             : `${
-                                  pr?.customer_id?.short_name ||
-                                  pr?.contract_code
+                                  pr?.buyer_id?.short_name ||
+                                  pr?.contract_id?.code
                               }`
                     break
                 case 'F':
@@ -532,29 +529,22 @@ export const exportPurchaseRequestToExcel = async (pr, data) => {
                     cellValue = data[i].kho_tong
                     break
                 case 'H':
-                    cellValue = data[i].kho_tan_long
+                    cellValue = 0
                     break
                 case 'I':
-                    cellValue = data[i].kho_an_phu
+                    cellValue = 0
                     break
                 case 'J':
-                    cellValue =
-                        data[i].kho_tong +
-                        data[i].kho_an_phu +
-                        data[i].kho_tan_long
+                    cellValue = data[i].kho_tong
                     break
                 case 'K':
-                    cellValue =
-                        data[i].contract_quantity -
-                        data[i].kho_tong +
-                        data[i].kho_an_phu +
-                        data[i].kho_tan_long
+                    cellValue = data[i].contract_quantity - data[i].kho_tong
                     break
                 case 'L':
                     cellValue = data[i].loss_rate
                     break
                 case 'M':
-                    cellValue = data[i].need_quantity
+                    cellValue = data[i].quantity
                     break
                 case 'N':
                     cellValue = data[i].note
@@ -755,7 +745,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         worksheet.mergeCells('C2:M2')
         worksheet.getCell(
             'C2'
-        ).value = `(Thay cho phụ kiện của Hợp đồng nguyên tắc số: ${po.replaced_for_contract})`
+        ).value = `(Thay cho phụ kiện của Hợp đồng nguyên tắc số: ${po?.replaced_contract_id?.code})`
         // Apply font style
         worksheet.getCell('C2').font = {
             name: 'Times New Roman',
@@ -804,7 +794,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
 
         worksheet.getCell(
             'A7'
-        ).value = `Căn cứ vào bảng đề nghị mua vật tư: Số đề nghị ${po?.pr_id?.name} của Phòng Kinh Doanh`
+        ).value = `Căn cứ vào bảng đề nghị mua vật tư: Số đề nghị ${po?.pr_name} của Phòng Kinh Doanh`
         // Apply font style
         worksheet.getCell('A7').font = {
             name: 'Times New Roman',
@@ -1266,17 +1256,10 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
                         break
                     case 'G':
                         worksheet.mergeCells(`G${rowNum}:I${rowNum}`)
-                        cellValue = data[i]?.note
+                        cellValue = data[i]?.standard
                         break
                     case 'J':
-                        cellValue =
-                            !data[i].length && !data[i].height && !data[i].width
-                                ? ''
-                                : data[i].length &&
-                                  data[i].width &&
-                                  !data[i].height
-                                ? `${data[i].length} x ${data[i].width}`
-                                : `${data[i].length} x ${data[i].width} x ${data[i].height}`
+                        cellValue = data[i]?.quy_cach
                         break
                     case 'K':
                         worksheet.getCell(
@@ -1442,9 +1425,9 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell(
-            `D${endNumRow + 4}`
-        ).value = `Địa điểm giao nhận: ${po.delivered_to}`
+        worksheet.getCell(`D${endNumRow + 4}`).value = `Địa điểm giao nhận: ${
+            po.delivered_to || ''
+        }`
         // Apply font style
         worksheet.getCell(`D${endNumRow + 4}`).font = {
             name: 'Times New Roman',
@@ -1466,9 +1449,9 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             wrapText: true,
         }
 
-        worksheet.getCell(
-            `B${endNumRow + 5}`
-        ).value = `Chi phí bốc xếp: ${po.loading_cost}`
+        worksheet.getCell(`B${endNumRow + 5}`).value = `Chi phí bốc xếp: ${
+            po.loading_cost || ''
+        }`
         // Apply font style
         worksheet.getCell(`B${endNumRow + 5}`).font = {
             name: 'Times New Roman',
@@ -1490,9 +1473,9 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             wrapText: true,
         }
 
-        worksheet.getCell(
-            `B${endNumRow + 6}`
-        ).value = `Chi phí vận chuyển: ${po.transfer_cost}`
+        worksheet.getCell(`B${endNumRow + 6}`).value = `Chi phí vận chuyển: ${
+            po.transfer_cost || ''
+        }`
         // Apply font style
         worksheet.getCell(`B${endNumRow + 6}`).font = {
             name: 'Times New Roman',
@@ -1516,7 +1499,9 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
 
         worksheet.getCell(
             `B${endNumRow + 7}`
-        ).value = `Hình thức và thời hạn thanh toán: ${po.payment_method_and_due_date}`
+        ).value = `Hình thức và thời hạn thanh toán: ${
+            po.payment_method_and_due_date || ''
+        }`
         // Apply font style
         worksheet.getCell(`B${endNumRow + 7}`).font = {
             name: 'Times New Roman',
@@ -1655,20 +1640,6 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
             horizontal: 'center',
         }
-
-        worksheet.mergeCells(`B${endNumRow + 13}:E${endNumRow + 13}`)
-        worksheet.getCell(`B${endNumRow + 13}`).value = 'GIÁM ĐỐC'
-        // Apply font style
-        worksheet.getCell(`B${endNumRow + 13}`).font = {
-            name: 'Times New Roman',
-            size: 16,
-        }
-        worksheet.getCell(`B${endNumRow + 13}`).alignment = {
-            wrapText: true,
-            vertical: 'middle',
-            horizontal: 'center',
-        }
-
         // Generate and save the Excel file
         const buffer = await workbook.xlsx.writeBuffer()
         saveAs(new Blob([buffer]), 'DH.xlsx')

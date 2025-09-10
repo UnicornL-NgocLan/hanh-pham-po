@@ -59,13 +59,21 @@ const App = () => {
             },
         },
         {
-            key: 4,
-            icon: <VscGitPullRequestNewChanges />,
-            label: 'Yêu cầu mua hàng',
+            key: 7,
+            icon: <IoDocumentTextSharp />,
+            label: 'Hợp đồng',
             onClick: () => {
-                handleNavigate('/purchase-request', 4)
+                handleNavigate('/contract', 7)
             },
         },
+        // {
+        //     key: 4,
+        //     icon: <VscGitPullRequestNewChanges />,
+        //     label: 'Yêu cầu mua hàng',
+        //     onClick: () => {
+        //         handleNavigate('/purchase-request', 4)
+        //     },
+        // },
         {
             key: 6,
             icon: <IoDocumentTextSharp />,

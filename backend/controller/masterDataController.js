@@ -1,6 +1,7 @@
 const Partners = require('../model/partner.js')
 const Products = require('../model/product.js')
 const Uoms = require('../model/uom.js')
+const Contracts = require('../model/contract.js')
 
 const masterDataCtrl = {
     createPartner: async (req, res) => {
@@ -75,25 +76,14 @@ const masterDataCtrl = {
 
     createProduct: async (req, res) => {
         try {
-            const { code, name, uom_id, height, width, length, leadTime } =
-                req.body
-
-            if (code) {
-                const existingRecord = await Products.findOne({ code })
-                if (existingRecord)
-                    return res
-                        .status(400)
-                        .json({ msg: 'Đã tồn tại sản phẩm với mã này' })
-            }
+            const { code, name, uom_id, leadTime, quy_cach } = req.body
 
             await Products.create({
                 code,
                 name,
                 uom_id,
-                height,
-                width,
-                length,
                 leadTime,
+                quy_cach,
             })
             res.status(200).json({ msg: 'OK' })
         } catch (error) {
@@ -158,6 +148,41 @@ const masterDataCtrl = {
     getUoms: async (req, res) => {
         try {
             const data = await Uoms.find({})
+            res.status(200).json({ data })
+        } catch (error) {
+            res.status(500).json({ msg: error.message })
+        }
+    },
+
+    createContract: async (req, res) => {
+        try {
+            const { code, partner_id } = req.body
+            await Contracts.create({ code, partner_id })
+            res.status(200).json({ msg: 'OK' })
+        } catch (error) {
+            res.status(500).json({ msg: error.message })
+        }
+    },
+
+    updateContract: async (req, res) => {
+        try {
+            let parameters = { ...req.body }
+            const { id } = req.params
+
+            await Contracts.findOneAndUpdate(
+                { _id: id },
+                { ...parameters },
+                { new: true }
+            )
+            res.status(200).json({ msg: 'OK' })
+        } catch (error) {
+            res.status(500).json({ msg: error.message })
+        }
+    },
+
+    getContracts: async (req, res) => {
+        try {
+            const data = await Contracts.find({}).populate('partner_id')
             res.status(200).json({ data })
         } catch (error) {
             res.status(500).json({ msg: error.message })

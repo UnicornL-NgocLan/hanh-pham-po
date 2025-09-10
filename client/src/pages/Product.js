@@ -73,9 +73,7 @@ const Product = () => {
                 if (success) {
                     const allValueValid = data.every(
                         (i) =>
-                            uoms.find((item) => item.name === i.uom) &&
-                            i.code &&
-                            i.name
+                            uoms.find((item) => item.name === i.uom) && i.name
                     )
 
                     if (!allValueValid) {
@@ -87,25 +85,15 @@ const Product = () => {
                     }
 
                     const myMapList = data.map((i) => {
-                        const {
-                            name,
-                            code,
-                            length,
-                            height,
-                            width,
-                            leadTime,
-                            uom,
-                        } = i
+                        const { name, code, leadTime, uom, quy_cach } = i
 
                         const myUom = uoms.find((item) => item.name === uom)
 
                         const processedData = {
                             name,
                             code,
-                            length,
-                            height,
-                            width,
                             leadTime,
+                            quy_cach,
                             uom_id: myUom?._id,
                         }
 
@@ -276,21 +264,9 @@ const Product = () => {
             render: (text) => <span>{text}</span>,
         },
         {
-            title: 'Chiều dài',
-            dataIndex: 'length',
-            key: 'length',
-            render: (text) => <span>{text}</span>,
-        },
-        {
-            title: 'Chiều rộng',
-            dataIndex: 'width',
-            key: 'width',
-            render: (text) => <span>{text}</span>,
-        },
-        {
-            title: 'Chiều cao',
-            dataIndex: 'height',
-            key: 'height',
+            title: 'Quy cách',
+            dataIndex: 'quy_cach',
+            key: 'quy_cach',
             render: (text) => <span>{text}</span>,
         },
         {
@@ -362,18 +338,16 @@ const MyDrawer = ({ open, onClose, getProducts }) => {
 
     const handleOk = async () => {
         try {
-            const { name, code, length, height, width, leadTime, uom_id } =
+            const { name, code, quy_cach, leadTime, uom_id } =
                 form.getFieldsValue()
-            if (!name || !code)
+            if (!name || !uom_id)
                 return alert('Vui lòng nhập đầy đủ thông tin bắt buộc')
             setLoading(true)
             if (open?._id) {
                 await axios.patch(`/api/update-product/${open._id}`, {
                     name,
                     code,
-                    length,
-                    height,
-                    width,
+                    quy_cach,
                     leadTime,
                     uom_id,
                 })
@@ -381,9 +355,7 @@ const MyDrawer = ({ open, onClose, getProducts }) => {
                 await axios.post('/api/create-product', {
                     name,
                     code,
-                    length,
-                    height,
-                    width,
+                    quy_cach,
                     leadTime,
                     uom_id,
                 })
@@ -402,9 +374,7 @@ const MyDrawer = ({ open, onClose, getProducts }) => {
         if (open?._id) {
             form.setFieldValue('name', open?.name)
             form.setFieldValue('code', open?.code)
-            form.setFieldValue('length', open?.length)
-            form.setFieldValue('width', open?.width)
-            form.setFieldValue('height', open?.height)
+            form.setFieldValue('quy_cach', open?.quy_cach)
             form.setFieldValue('leadTime', open?.leadTime)
             form.setFieldValue('uom_id', open?.uom_id?._id)
         }
@@ -448,13 +418,7 @@ const MyDrawer = ({ open, onClose, getProducts }) => {
                         placeholder="Thùng carton ABC..."
                     />
                 </Form.Item>
-                <Form.Item
-                    name="code"
-                    label="Mã sản phẩm"
-                    rules={[
-                        { required: true, message: 'Hãy nhập mã sản phẩm!' },
-                    ]}
-                >
+                <Form.Item name="code" label="Mã sản phẩm">
                     <Input className="w-full" placeholder="KT4AW2..." />
                 </Form.Item>
                 <Form.Item
@@ -479,71 +443,9 @@ const MyDrawer = ({ open, onClose, getProducts }) => {
                         })}
                     />
                 </Form.Item>
-                <Space>
-                    <Form.Item name="length" label="Chiều dài">
-                        <InputNumber
-                            inputMode="decimal"
-                            style={{ width: '100%' }}
-                            formatter={(value) =>
-                                value
-                                    ? value
-                                          .toString()
-                                          .replace(/\B(?=(\d{3})+(?!\d))/g, ',') // thousands with comma
-                                    : ''
-                            }
-                            parser={(value) =>
-                                value
-                                    ? parseFloat(
-                                          value.toString().replace(/,/g, '')
-                                      ) // remove commas
-                                    : 0
-                            }
-                            min={0}
-                        />
-                    </Form.Item>
-                    <Form.Item name="width" label="Chiều rộng">
-                        <InputNumber
-                            inputMode="decimal"
-                            style={{ width: '100%' }}
-                            formatter={(value) =>
-                                value
-                                    ? value
-                                          .toString()
-                                          .replace(/\B(?=(\d{3})+(?!\d))/g, ',') // thousands with comma
-                                    : ''
-                            }
-                            parser={(value) =>
-                                value
-                                    ? parseFloat(
-                                          value.toString().replace(/,/g, '')
-                                      ) // remove commas
-                                    : 0
-                            }
-                            min={0}
-                        />
-                    </Form.Item>
-                    <Form.Item name="height" label="Chiều cao">
-                        <InputNumber
-                            inputMode="decimal"
-                            style={{ width: '100%' }}
-                            formatter={(value) =>
-                                value
-                                    ? value
-                                          .toString()
-                                          .replace(/\B(?=(\d{3})+(?!\d))/g, ',') // thousands with comma
-                                    : ''
-                            }
-                            parser={(value) =>
-                                value
-                                    ? parseFloat(
-                                          value.toString().replace(/,/g, '')
-                                      ) // remove commas
-                                    : 0
-                            }
-                            min={0}
-                        />
-                    </Form.Item>
-                </Space>
+                <Form.Item name="quy_cach" label="Quy cách">
+                    <Input className="w-full" placeholder="30x40x70..." />
+                </Form.Item>
                 <Form.Item name="leadTime" label="Độ trễ giao hàng">
                     <InputNumber
                         inputMode="decimal"

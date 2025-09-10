@@ -235,9 +235,6 @@ const poCtrl = {
     createPurchaseOrder: async (req, res) => {
         try {
             const {
-                name,
-                replaced_for_contract,
-                pr_id,
                 quotation_date,
                 partner_id,
                 buyer_id,
@@ -247,14 +244,19 @@ const poCtrl = {
                 transfer_cost,
                 date_ordered,
                 payment_method_and_due_date,
+                customer_id,
+                contract_id,
+                replaced_contract_id,
+                date,
             } = req.body
+
             if (
-                !name ||
-                !replaced_for_contract ||
-                !pr_id ||
+                !contract_id ||
+                !replaced_contract_id ||
                 !quotation_date ||
                 !partner_id ||
                 !buyer_id ||
+                !customer_id ||
                 !date_ordered
             )
                 return res.status(400).json({ msg: 'Missing required fields.' })
@@ -267,15 +269,73 @@ const poCtrl = {
             if (!customer)
                 return res.status(400).json({ msg: 'Customer does not exist.' })
 
-            const existingPr = await PurchaseRequest.findById(pr_id)
-            if (!existingPr)
-                return res
-                    .status(400)
-                    .json({ msg: 'Không tìm thấy đề nghị mua hàng' })
+            let plus7HoursDate = moment(date).add(7, 'hours').toDate()
+            plus7HoursDate.setHours(plus7HoursDate.getHours() + 7)
+
+            const currentSequencePeriod = await PurchaseRequestSequence.findOne(
+                {
+                    partner_id,
+                    from: { $lte: plus7HoursDate },
+                    to: { $gte: plus7HoursDate },
+                }
+            )
+            let number = 1
+            if (currentSequencePeriod) {
+                const newNumber = currentSequencePeriod.currentNumber + 1
+                number = newNumber
+                await PurchaseRequestSequence.findByIdAndUpdate(
+                    currentSequencePeriod._id,
+                    { currentNumber: newNumber },
+                    { new: true }
+                )
+            } else {
+                const firstDateOfThisMonth = moment(
+                    new Date(
+                        plus7HoursDate.getFullYear(),
+                        plus7HoursDate.getMonth(),
+                        1,
+                        0,
+                        0,
+                        0,
+                        0
+                    )
+                )
+                    .add(7, 'hours')
+                    .toDate()
+                const lastDateOfThisMonth = moment(
+                    new Date(
+                        plus7HoursDate.getFullYear(),
+                        plus7HoursDate.getMonth() + 1,
+                        0,
+                        23,
+                        59,
+                        59,
+                        0
+                    )
+                )
+                    .add(7, 'hours')
+                    .toDate()
+                await PurchaseRequestSequence.create({
+                    currentNumber: 1,
+                    partner_id,
+                    from: firstDateOfThisMonth,
+                    to: lastDateOfThisMonth,
+                })
+            }
+            const newPurchaseRequestName = `${number} /DN TS ${
+                plus7HoursDate.getMonth() + 1
+            } ${plus7HoursDate.getFullYear()} - ${partner.code}`
+
+            const newPurchaseOrderName = `${number} /DH ${
+                plus7HoursDate.getMonth() + 1
+            } ${plus7HoursDate.getFullYear()} - ${partner.code}`
+
             const data = await PurchaseOrder.create({
-                name,
-                replaced_for_contract,
-                pr_id,
+                name: newPurchaseOrderName,
+                customer_id,
+                contract_id,
+                date,
+                pr_name: newPurchaseRequestName,
                 quotation_date,
                 partner_id,
                 buyer_id,
@@ -284,6 +344,7 @@ const poCtrl = {
                 loading_cost,
                 transfer_cost,
                 date_ordered,
+                replaced_contract_id,
                 payment_method_and_due_date,
             })
             res.status(200).json({
@@ -314,7 +375,9 @@ const poCtrl = {
     getPurchaseOrders: async (req, res) => {
         try {
             const data = await PurchaseOrder.find({})
-                .populate('partner_id pr_id buyer_id')
+                .populate(
+                    'partner_id pr_id buyer_id customer_id contract_id replaced_contract_id'
+                )
                 .sort({ date_ordered: -1 })
             res.status(200).json({ data })
         } catch (error) {
@@ -328,13 +391,16 @@ const poCtrl = {
                 order_id,
                 product_id,
                 uom_id,
-                length,
-                width,
-                height,
+                quy_cach,
+                contract_quantity,
+                need_quantity,
+                kho_tong,
+                loss_rate,
+                note,
+                standard,
                 quantity,
                 price_unit,
                 sub_total,
-                note,
             } = req.body
 
             if (!order_id || !product_id || !uom_id)
@@ -346,13 +412,16 @@ const poCtrl = {
                 order_id,
                 product_id,
                 uom_id,
-                length,
-                width,
-                height,
+                quy_cach,
+                contract_quantity,
+                need_quantity,
+                kho_tong,
+                loss_rate,
+                note,
+                standard,
                 quantity,
                 price_unit,
                 sub_total,
-                note,
             })
 
             const listOfPols = await PurchaseOrderLine.find({ order_id })
@@ -364,7 +433,7 @@ const poCtrl = {
             }
 
             total_tax = (total_amount_untaxed * 8) / 100
-
+            console.log(total_amount_untaxed, total_tax)
             await PurchaseOrder.findOneAndUpdate(
                 { _id: order_id },
                 {
@@ -457,7 +526,26 @@ const poCtrl = {
                 order_id: order_id,
             }).populate('product_id uom_id')
 
-            res.status(200).json({ data })
+            const respectivePurchaseOrder = await PurchaseOrder.findOne({
+                _id: order_id,
+            }).populate(
+                'partner_id pr_id buyer_id customer_id contract_id replaced_contract_id'
+            )
+            res.status(200).json({ data, po: respectivePurchaseOrder })
+        } catch (error) {
+            res.status(500).json({ msg: error.message })
+        }
+    },
+
+    deletePurchaseOrder: async (req, res) => {
+        try {
+            const { id } = req.params
+            await PurchaseOrderLine.deleteMany({
+                order_id: id,
+            })
+            await PurchaseOrder.findOneAndDelete({ _id: id })
+
+            res.status(200).json({ msg: 'OK' })
         } catch (error) {
             res.status(500).json({ msg: error.message })
         }

@@ -9,9 +9,7 @@ const ProductSchema = mongoose.Schema(
             ref: 'Uom',
         },
         active: { type: Boolean, default: true },
-        height: Number,
-        width: Number,
-        length: Number,
+        quy_cach: String,
         leadTime: Number,
     },
     { timestamps: true }

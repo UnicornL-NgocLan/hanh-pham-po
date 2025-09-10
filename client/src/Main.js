@@ -9,6 +9,7 @@ import { useZustand } from './zustand.js'
 import axios from 'axios'
 import PurchaseRequestSequence from './pages/PurchaseRequestSequence.js'
 import PurchaseOrder from './pages/PurchaseOrder.js'
+import Contract from './pages/Contract.js'
 
 const Main = () => {
     const [loading, setLoading] = useState(false)
@@ -19,6 +20,7 @@ const Main = () => {
         setPrState,
         setPrSequenceState,
         setPoState,
+        setContractState,
     } = useZustand()
 
     const handleFetchData = async () => {
@@ -31,6 +33,7 @@ const Main = () => {
                 axios.get('/api/get-prs'),
                 axios.get('/api/get-pr-sequences'),
                 axios.get('/api/get-pos'),
+                axios.get('/api/get-contracts'),
             ])
 
             setPartnerState(result[0].data.data)
@@ -39,6 +42,7 @@ const Main = () => {
             setPrState(result[3].data.data)
             setPrSequenceState(result[4].data.data)
             setPoState(result[5].data.data)
+            setContractState(result[6].data.data)
         } catch (error) {
             console.log(error)
             alert(error?.response?.data?.msg || error)
@@ -68,6 +72,7 @@ const Main = () => {
                         element={<PurchaseRequestSequence />}
                     />
                     <Route path="purchase-order" element={<PurchaseOrder />} />
+                    <Route path="contract" element={<Contract />} />
                 </Route>
             </Routes>
         </BrowserRouter>

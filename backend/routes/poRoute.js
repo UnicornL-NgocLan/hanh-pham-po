@@ -24,5 +24,6 @@ router.patch('/update-po-line/:id', poController.updatePurchaseOrderLine)
 
 router.delete('/delete-pr-line/:id', poController.deletePurchaseRequestLine)
 router.delete('/delete-po-line/:id', poController.deletePurchaseOrderLine)
+router.delete('/delete-po/:id', poController.deletePurchaseOrder)
 
 module.exports = router

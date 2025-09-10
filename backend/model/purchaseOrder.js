@@ -3,10 +3,10 @@ const mongoose = require('mongoose')
 const PurchaseOrderSchema = mongoose.Schema(
     {
         name: String,
-        replaced_for_contract: String,
+        pr_name: String,
         pr_id: { type: mongoose.Schema.Types.ObjectId, ref: 'PurchaseRequest' },
-        quotation_date: Date,
         partner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner' },
+        quotation_date: Date,
         buyer_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner' },
         date_deliveried: Date,
         delivered_to: String,
@@ -18,6 +18,16 @@ const PurchaseOrderSchema = mongoose.Schema(
         tax: { type: Number, default: 0 },
         total_amount: { type: Number, default: 0 },
         active: { type: Boolean, default: true },
+        customer_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner' },
+        replaced_contract_id: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Contract',
+        },
+        contract_id: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Contract',
+        },
+        date: Date,
     },
     { timestamps: true }
 )
