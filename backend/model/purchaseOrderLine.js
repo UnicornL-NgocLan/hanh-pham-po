@@ -12,6 +12,7 @@ const PurchaseOrderLineSchema = mongoose.Schema(
         quantity: Number,
         price_unit: Number,
         sub_total: Number,
+        quotation_date: Date,
         standard: String,
         contract_quantity: Number,
         need_quantity: Number,

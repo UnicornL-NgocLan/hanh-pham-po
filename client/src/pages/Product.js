@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button, Drawer, Form, Input, Space, Select, Table } from 'antd'
-import { InputNumber } from 'antd'
 import { useZustand } from '../zustand.js'
 import axios from 'axios'
 import Highlighter from 'react-highlight-words'
@@ -270,9 +269,9 @@ const Product = () => {
             render: (text) => <span>{text}</span>,
         },
         {
-            title: 'Độ trễ giao hàng',
-            dataIndex: 'leadTime',
-            key: 'leadTime',
+            title: 'Chất lượng tiêu chuẩn',
+            dataIndex: 'standard',
+            key: 'standard',
             render: (text) => <span>{text}</span>,
         },
         {
@@ -338,7 +337,7 @@ const MyDrawer = ({ open, onClose, getProducts }) => {
 
     const handleOk = async () => {
         try {
-            const { name, code, quy_cach, leadTime, uom_id } =
+            const { name, code, quy_cach, standard, uom_id } =
                 form.getFieldsValue()
             if (!name || !uom_id)
                 return alert('Vui lòng nhập đầy đủ thông tin bắt buộc')
@@ -348,7 +347,7 @@ const MyDrawer = ({ open, onClose, getProducts }) => {
                     name,
                     code,
                     quy_cach,
-                    leadTime,
+                    standard,
                     uom_id,
                 })
             } else {
@@ -356,7 +355,7 @@ const MyDrawer = ({ open, onClose, getProducts }) => {
                     name,
                     code,
                     quy_cach,
-                    leadTime,
+                    standard,
                     uom_id,
                 })
             }
@@ -375,7 +374,7 @@ const MyDrawer = ({ open, onClose, getProducts }) => {
             form.setFieldValue('name', open?.name)
             form.setFieldValue('code', open?.code)
             form.setFieldValue('quy_cach', open?.quy_cach)
-            form.setFieldValue('leadTime', open?.leadTime)
+            form.setFieldValue('standard', open?.standard)
             form.setFieldValue('uom_id', open?.uom_id?._id)
         }
     }, [])
@@ -446,24 +445,8 @@ const MyDrawer = ({ open, onClose, getProducts }) => {
                 <Form.Item name="quy_cach" label="Quy cách">
                     <Input className="w-full" placeholder="30x40x70..." />
                 </Form.Item>
-                <Form.Item name="leadTime" label="Độ trễ giao hàng">
-                    <InputNumber
-                        inputMode="decimal"
-                        style={{ width: '100%' }}
-                        formatter={(value) =>
-                            value
-                                ? value
-                                      .toString()
-                                      .replace(/\B(?=(\d{3})+(?!\d))/g, ',') // thousands with comma
-                                : ''
-                        }
-                        parser={(value) =>
-                            value
-                                ? parseFloat(value.toString().replace(/,/g, '')) // remove commas
-                                : 0
-                        }
-                        min={0}
-                    />
+                <Form.Item name="standard" label="Chất lượng tiêu chuẩn">
+                    <Input className="w-full" placeholder="30x40x70..." />
                 </Form.Item>
             </Form>
         </Drawer>

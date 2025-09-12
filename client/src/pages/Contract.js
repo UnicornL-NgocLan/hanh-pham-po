@@ -279,6 +279,8 @@ const MyDrawer = ({ open, onClose, getContracts }) => {
                 </Form.Item>
                 <Form.Item name="partner_id" label="Khách hàng">
                     <Select
+                        allowClear
+                        showSearch
                         filterOption={(input, option) =>
                             (option?.label ?? '')
                                 .toLowerCase()

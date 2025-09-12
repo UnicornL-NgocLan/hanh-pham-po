@@ -14,6 +14,8 @@ const PartnerSchema = mongoose.Schema(
         fax: String,
         accountNumber: String,
         accountBank: String,
+        isMyCompany: { type: Boolean, default: false },
+        replacedForContract: String,
         active: { type: Boolean, default: true },
     },
     { timestamps: true }

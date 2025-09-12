@@ -10,7 +10,7 @@ const ProductSchema = mongoose.Schema(
         },
         active: { type: Boolean, default: true },
         quy_cach: String,
-        leadTime: Number,
+        standard: String,
     },
     { timestamps: true }
 )

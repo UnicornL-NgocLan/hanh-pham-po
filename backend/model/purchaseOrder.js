@@ -6,7 +6,6 @@ const PurchaseOrderSchema = mongoose.Schema(
         pr_name: String,
         pr_id: { type: mongoose.Schema.Types.ObjectId, ref: 'PurchaseRequest' },
         partner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner' },
-        quotation_date: Date,
         buyer_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner' },
         date_deliveried: Date,
         delivered_to: String,
@@ -19,14 +18,13 @@ const PurchaseOrderSchema = mongoose.Schema(
         total_amount: { type: Number, default: 0 },
         active: { type: Boolean, default: true },
         customer_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner' },
-        replaced_contract_id: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Contract',
-        },
-        contract_id: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Contract',
-        },
+        contract_id: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Contract',
+            },
+        ],
+        replacedForContract: String,
         date: Date,
     },
     { timestamps: true }

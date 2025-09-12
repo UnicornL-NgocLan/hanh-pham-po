@@ -493,7 +493,6 @@ export const exportPurchaseRequestToExcel = async (pr, data) => {
         'N',
     ]
 
-    console.log(data)
     for (let i = 0; i < data.length; i++) {
         let rowNum = 10 + i + 1
         for (let j = 0; j < listOfColumn.length; j++) {
@@ -512,15 +511,18 @@ export const exportPurchaseRequestToExcel = async (pr, data) => {
                     cellValue = data[i]?.quy_cach
                     break
                 case 'E':
-                    cellValue =
-                        pr?.buyer_id && pr?.contract_id?.code
-                            ? `${pr?.buyer_id?.short_name} - ${pr?.contract_id?.code}`
-                            : !pr?.buyer_id && !pr?.contract_id?.code
-                            ? ''
-                            : `${
-                                  pr?.buyer_id?.short_name ||
-                                  pr?.contract_id?.code
-                              }`
+                    let contractString = ''
+                    const contractList = pr.contract_id
+                    for (let k = 0; k < contractList.length; k++) {
+                        if (k === contractList[k].length - 1) {
+                            contractString =
+                                contractString + contractList[k]?.code
+                        } else {
+                            contractString =
+                                contractString + contractList[k]?.code + ', '
+                        }
+                    }
+                    cellValue = `${pr?.buyer_id?.name} - ${contractString}`
                     break
                 case 'F':
                     cellValue = data[i].contract_quantity
@@ -745,7 +747,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         worksheet.mergeCells('C2:M2')
         worksheet.getCell(
             'C2'
-        ).value = `(Thay cho phụ kiện của Hợp đồng nguyên tắc số: ${po?.replaced_contract_id?.code})`
+        ).value = `(Thay cho phụ kiện của Hợp đồng nguyên tắc số: ${po?.replacedForContract})`
         // Apply font style
         worksheet.getCell('C2').font = {
             name: 'Times New Roman',
@@ -804,11 +806,36 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell('A8').value = `Căn cứ vào bảng báo giá ngày ${moment(
-            po?.quotation_date
-        )
-            .add(7, 'hours')
-            .format('DD/MM/YYYY')} của ${po?.partner_id?.name}`
+        let dateString = ''
+
+        let dateList = [
+            ...new Set(
+                data
+                    .filter((item) => item.quotation_date)
+                    .map((item) => item.quotation_date)
+            ),
+        ]
+        for (let k = 0; k < dateList.length; k++) {
+            if (k === dateList.length - 1) {
+                dateString =
+                    dateString +
+                    moment(dateList[k])
+                        .add(7, 'hours')
+                        .format('DD/MM/YYYY')
+                        .toString()
+            } else {
+                dateString =
+                    dateString +
+                    moment(dateList[k])
+                        .add(7, 'hours')
+                        .format('DD/MM/YYYY')
+                        .toString() +
+                    ', '
+            }
+        }
+        worksheet.getCell(
+            'A8'
+        ).value = `Căn cứ vào bảng báo giá ngày ${dateString} của ${po?.partner_id?.name}`
         // Apply font style
         worksheet.getCell('A8').font = {
             name: 'Times New Roman',
@@ -830,7 +857,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
                     },
                 },
                 {
-                    text: po?.buyer_id?.name,
+                    text: po?.customer_id?.name,
                     font: { name: 'Times New Roman', size: 14 },
                 },
             ],
@@ -862,8 +889,8 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         }
 
         worksheet.getCell('A10').value = `Địa chỉ: ${
-            po?.buyer_id?.address || ''
-        }, ${po?.buyer_id?.district || ''}`
+            po?.customer_id?.address || ''
+        }, ${po?.customer_id?.district || ''}`
         // Apply font style
         worksheet.getCell('A10').font = {
             name: 'Times New Roman',
@@ -885,8 +912,8 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell('A11').value = `${po?.buyer_id?.city || ''}, ${
-            po?.buyer_id?.country || ''
+        worksheet.getCell('A11').value = `${po?.customer_id?.city || ''}, ${
+            po?.customer_id?.country || ''
         }`
         // Apply font style
         worksheet.getCell('A11').font = {
@@ -897,9 +924,9 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell('H11').value = `${po?.buyer_id?.district || ''}, ${
-            po?.buyer_id?.city || ''
-        }, ${po?.buyer_id?.country || ''}`
+        worksheet.getCell('H11').value = `${po?.customer_id?.district || ''}, ${
+            po?.customer_id?.city || ''
+        }, ${po?.customer_id?.country || ''}`
         // Apply font style
         worksheet.getCell('H11').font = {
             name: 'Times New Roman',
@@ -910,7 +937,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         }
 
         worksheet.getCell('A12').value = `Mã số thuế: ${
-            po?.buyer_id?.vat || ''
+            po?.customer_id?.vat || ''
         }`
         // Apply font style
         worksheet.getCell('A12').font = {
@@ -934,7 +961,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         }
 
         worksheet.getCell('A13').value = `Điện thoại: ${
-            po?.buyer_id?.phone || ''
+            po?.customer_id?.phone || ''
         }`
         // Apply font style
         worksheet.getCell('A13').font = {
@@ -957,7 +984,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell('A14').value = `Fax: ${po?.buyer_id?.fax || ''}`
+        worksheet.getCell('A14').value = `Fax: ${po?.customer_id?.fax || ''}`
         // Apply font style
         worksheet.getCell('A14').font = {
             name: 'Times New Roman',
@@ -978,7 +1005,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         }
 
         worksheet.getCell('A15').value = `Tài khoản: ${
-            po?.buyer_id?.accountNumber || ''
+            po?.customer_id?.accountNumber || ''
         }`
         // Apply font style
         worksheet.getCell('A15').font = {
@@ -1011,7 +1038,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
                     },
                 },
                 {
-                    text: po?.buyer_id?.accountBank || '',
+                    text: po?.customer_id?.accountBank || '',
                     font: { name: 'Times New Roman', size: 14 },
                 },
             ],
@@ -1237,7 +1264,6 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         worksheet.getColumn(12).width = 18
 
         const listOfColumn = ['A', 'B', 'E', 'G', 'J', 'K', 'L', 'M']
-        console.log(data)
         for (let i = 0; i < data.length; i++) {
             let rowNum = 19 + i
             for (let j = 0; j < listOfColumn.length; j++) {
@@ -1425,9 +1451,9 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell(`D${endNumRow + 4}`).value = `Địa điểm giao nhận: ${
-            po.delivered_to || ''
-        }`
+        worksheet.getCell(
+            `D${endNumRow + 4}`
+        ).value = `Địa điểm giao nhận: Kho bên mua`
         // Apply font style
         worksheet.getCell(`D${endNumRow + 4}`).font = {
             name: 'Times New Roman',
@@ -1449,9 +1475,9 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             wrapText: true,
         }
 
-        worksheet.getCell(`B${endNumRow + 5}`).value = `Chi phí bốc xếp: ${
-            po.loading_cost || ''
-        }`
+        worksheet.getCell(
+            `B${endNumRow + 5}`
+        ).value = `Chi phí bốc xếp: Mỗi bên chịu một đầu`
         // Apply font style
         worksheet.getCell(`B${endNumRow + 5}`).font = {
             name: 'Times New Roman',
@@ -1473,9 +1499,9 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             wrapText: true,
         }
 
-        worksheet.getCell(`B${endNumRow + 6}`).value = `Chi phí vận chuyển: ${
-            po.transfer_cost || ''
-        }`
+        worksheet.getCell(
+            `B${endNumRow + 6}`
+        ).value = `Chi phí vận chuyển: Bên bán chịu`
         // Apply font style
         worksheet.getCell(`B${endNumRow + 6}`).font = {
             name: 'Times New Roman',
@@ -1499,9 +1525,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
 
         worksheet.getCell(
             `B${endNumRow + 7}`
-        ).value = `Hình thức và thời hạn thanh toán: ${
-            po.payment_method_and_due_date || ''
-        }`
+        ).value = `Hình thức và thời hạn thanh toán: Căn cứ theo Hợp Đồng Nguyên Tắc đã ký`
         // Apply font style
         worksheet.getCell(`B${endNumRow + 7}`).font = {
             name: 'Times New Roman',

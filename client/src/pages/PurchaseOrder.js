@@ -26,6 +26,7 @@ import {
     exportPurchaseRequestToExcel,
 } from '../utils/createExcelFile.js'
 import { exportSummaryExcelFile } from '../utils/exportSummaryExcelFile.js'
+import { FaCirclePlus } from 'react-icons/fa6'
 
 const PurchaseOrder = () => {
     const [showDrawer, setShowDrawer] = useState(false)
@@ -478,7 +479,17 @@ const MyDrawer = ({ open, onClose, getPos }) => {
     const searchInput = useRef(null)
     const [showPurchaseOrderLineDrawer, setShowPurchaseOrderLineDrawer] =
         useState(false)
-    const { partners, po_lines, setPoLineState, contracts } = useZustand()
+    const {
+        partners,
+        po_lines,
+        setPoLineState,
+        contracts,
+        setContractState,
+        setPartnerState,
+    } = useZustand()
+    const [filteredContracts, setFilteredContracts] = useState([])
+    const [openMyContractDrawer, setOpenMyContractDrawer] = useState(false)
+    const [openMyPartnerDrawer, setOpenMyPartnerDrawer] = useState(false)
 
     const handleGetRespectiveLines = async () => {
         try {
@@ -494,13 +505,32 @@ const MyDrawer = ({ open, onClose, getPos }) => {
         }
     }
 
+    const getContracts = async () => {
+        try {
+            const { data } = await axios.get('/api/get-contracts')
+            setContractState(data.data)
+        } catch (error) {
+            console.log(error)
+            alert(error?.response?.data?.msg)
+        }
+    }
+
+    const getPartners = async () => {
+        try {
+            const { data } = await axios.get('/api/get-partners')
+            setPartnerState(data.data)
+        } catch (error) {
+            console.log(error)
+            alert(error?.response?.data?.msg)
+        }
+    }
+
     const handleOk = async () => {
         try {
             const {
                 name,
-                replaced_contract_id,
+                replacedForContract,
                 pr_name,
-                quotation_date,
                 partner_id,
                 contract_id,
                 buyer_id,
@@ -508,19 +538,15 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                 customer_id,
                 date_deliveried,
                 delivered_to,
-                loading_cost,
-                transfer_cost,
                 date_ordered,
-                payment_method_and_due_date,
                 active,
             } = form.getFieldsValue()
 
             if (
                 (!name && open?._id) ||
                 (!pr_name && open?._id) ||
-                !replaced_contract_id ||
+                !replacedForContract ||
                 !contract_id ||
-                !quotation_date ||
                 !partner_id ||
                 !buyer_id ||
                 !date_ordered ||
@@ -529,36 +555,29 @@ const MyDrawer = ({ open, onClose, getPos }) => {
             )
                 return alert('Vui lòng nhập đầy đủ thông tin bắt buộc')
 
-            if (open?._id && active === undefined)
-                return alert('Vui lòng chọn trạng thái chứng từ')
             setLoading(true)
 
             let po_id_created
             if (open?._id) {
                 await axios.patch(`/api/update-po/${open._id}`, {
                     name,
-                    replaced_contract_id,
+                    replacedForContract,
                     pr_name,
-                    quotation_date,
                     partner_id,
                     buyer_id,
                     contract_id,
                     date,
                     date_deliveried,
                     delivered_to,
-                    loading_cost,
-                    transfer_cost,
                     customer_id,
                     date_ordered,
-                    payment_method_and_due_date,
                     active,
                 })
             } else {
                 const { data } = await axios.post('/api/create-po', {
                     name,
-                    replaced_contract_id,
+                    replacedForContract,
                     pr_name,
-                    quotation_date,
                     partner_id,
                     contract_id,
                     customer_id,
@@ -566,10 +585,7 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                     date,
                     date_deliveried,
                     delivered_to,
-                    loading_cost,
-                    transfer_cost,
                     date_ordered,
-                    payment_method_and_due_date,
                 })
                 po_id_created = data?.data?._id
             }
@@ -592,33 +608,26 @@ const MyDrawer = ({ open, onClose, getPos }) => {
     useEffect(() => {
         if (open?._id) {
             form.setFieldValue('name', open?.name)
+            form.setFieldValue('replacedForContract', open?.replacedForContract)
             form.setFieldValue(
-                'replaced_contract_id',
-                open?.replaced_contract_id?._id
+                'contract_id',
+                open?.contract_id?.map((i) => i._id)
             )
-            form.setFieldValue('contract_id', open?.contract_id?._id)
             form.setFieldValue('partner_id', open?.partner_id?._id)
             form.setFieldValue('customer_id', open?.customer_id?._id)
             form.setFieldValue('buyer_id', open?.buyer_id?._id)
             form.setFieldValue('pr_name', open?.pr_name)
             form.setFieldValue('date_ordered', dayjs(open?.date_ordered))
             form.setFieldValue('date', dayjs(open?.date))
-            form.setFieldValue('quotation_date', dayjs(open?.quotation_date))
             form.setFieldValue(
                 'date_deliveried',
                 open?.date_deliveried ? dayjs(open?.date_deliveried) : null
             )
             form.setFieldValue('delivered_to', open?.delivered_to)
-            form.setFieldValue('loading_cost', open?.loading_cost)
-            form.setFieldValue('transfer_cost', open?.transfer_cost)
-            form.setFieldValue('active', open?.active)
-            form.setFieldValue(
-                'payment_method_and_due_date',
-                open?.payment_method_and_due_date
-            )
         } else {
+            const myCompany = partners.find((i) => i.isMyCompany)
             form.setFieldValue('date', dayjs(new Date()))
-            form.setFieldValue('quotation_date', dayjs(new Date()))
+            form.setFieldValue('customer_id', myCompany?._id)
             form.setFieldValue('date_ordered', dayjs(new Date()))
         }
     }, [open])
@@ -774,6 +783,18 @@ const MyDrawer = ({ open, onClose, getPos }) => {
             render: (text) => <span>{text}</span>,
         },
         {
+            title: 'Ngày báo giá',
+            dataIndex: 'quotation_date',
+            key: 'quotation_date',
+            align: 'right',
+            sorter: (a, b) =>
+                moment(a.quotation_date) - moment(b.quotation_date),
+            render: (value) =>
+                value ? (
+                    <span>{moment(value).format('DD/MM/YYYY')}</span>
+                ) : undefined,
+        },
+        {
             title: 'SL theo HĐ',
             dataIndex: 'contract_quantity',
             key: 'contract_quantity',
@@ -862,6 +883,13 @@ const MyDrawer = ({ open, onClose, getPos }) => {
         }
     }
 
+    useEffect(() => {
+        const filterData = contracts.filter(
+            (i) => i?.partner_id?._id === form.getFieldValue('buyer_id')
+        )
+        setFilteredContracts(filterData)
+    }, [contracts])
+
     return (
         <Drawer
             title={open?._id ? 'Chỉnh sửa' : 'Tạo mới'}
@@ -911,6 +939,46 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                         <Input className="w-full" disabled={!open?._id} />
                     </Form.Item>
                     <Form.Item
+                        name="buyer_id"
+                        style={{ flex: 1 }}
+                        label="Khách hàng"
+                        rules={[
+                            {
+                                required: true,
+                                message: 'Hãy chọn khách hàng',
+                            },
+                        ]}
+                    >
+                        <Select
+                            showSearch
+                            prefix={
+                                <Button
+                                    size="small"
+                                    color="primary"
+                                    variant="solid"
+                                    onClick={() => setOpenMyPartnerDrawer(true)}
+                                >
+                                    <FaCirclePlus />
+                                </Button>
+                            }
+                            allowClear
+                            onChange={(e) => {
+                                const filtered = contracts.filter(
+                                    (i) => i.partner_id?._id === e
+                                )
+                                setFilteredContracts(filtered)
+                            }}
+                            filterOption={(input, option) =>
+                                (option?.label ?? '')
+                                    .toLowerCase()
+                                    .includes(input.toLowerCase())
+                            }
+                            options={partners.map((i) => {
+                                return { value: i._id, label: i.name }
+                            })}
+                        />
+                    </Form.Item>
+                    <Form.Item
                         style={{ flex: 1 }}
                         name="contract_id"
                         label="Hợp đồng"
@@ -922,57 +990,27 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                         ]}
                     >
                         <Select
+                            mode="multiple"
+                            allowClear
+                            prefix={
+                                <Button
+                                    size="small"
+                                    color="primary"
+                                    variant="solid"
+                                    onClick={() =>
+                                        setOpenMyContractDrawer(true)
+                                    }
+                                >
+                                    <FaCirclePlus />
+                                </Button>
+                            }
                             showSearch
-                            onChange={(e) => {
-                                const current_contract = contracts.find(
-                                    (i) => i._id === e
-                                )
-                                if (current_contract) {
-                                    form.setFieldValue(
-                                        'buyer_id',
-                                        current_contract?.partner_id?._id
-                                    )
-                                }
-                            }}
                             filterOption={(input, option) =>
                                 (option?.label ?? '')
                                     .toLowerCase()
                                     .includes(input.toLowerCase())
                             }
-                            options={contracts.map((i) => {
-                                return { value: i._id, label: i.code }
-                            })}
-                        />
-                    </Form.Item>
-                    <Form.Item
-                        style={{ flex: 1 }}
-                        name="replaced_contract_id"
-                        label="Thay thế cho hợp đồng nguyên tắc"
-                        rules={[
-                            {
-                                required: true,
-                            },
-                        ]}
-                    >
-                        <Select
-                            showSearch
-                            onChange={(e) => {
-                                const current_contract = contracts.find(
-                                    (i) => i._id === e
-                                )
-                                if (current_contract) {
-                                    form.setFieldValue(
-                                        'partner_id',
-                                        current_contract?.partner_id?._id
-                                    )
-                                }
-                            }}
-                            filterOption={(input, option) =>
-                                (option?.label ?? '')
-                                    .toLowerCase()
-                                    .includes(input.toLowerCase())
-                            }
-                            options={contracts.map((i) => {
+                            options={filteredContracts.map((i) => {
                                 return { value: i._id, label: i.code }
                             })}
                         />
@@ -992,20 +1030,53 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                     >
                         <Select
                             showSearch
+                            prefix={
+                                <Button
+                                    size="small"
+                                    color="primary"
+                                    variant="solid"
+                                    onClick={() => setOpenMyPartnerDrawer(true)}
+                                >
+                                    <FaCirclePlus />
+                                </Button>
+                            }
                             filterOption={(input, option) =>
                                 (option?.label ?? '')
                                     .toLowerCase()
                                     .includes(input.toLowerCase())
                             }
+                            onChange={(e) => {
+                                const current_partner = partners.find(
+                                    (i) => i._id === e
+                                )
+                                if (current_partner) {
+                                    form.setFieldValue(
+                                        'replacedForContract',
+                                        current_partner?.replacedForContract
+                                    )
+                                }
+                            }}
                             options={partners.map((i) => {
                                 return { value: i._id, label: i.name }
                             })}
                         />
+                    </Form.Item>
+                    <Form.Item
+                        style={{ flex: 1 }}
+                        name="replacedForContract"
+                        label="Thay thế cho hợp đồng nguyên tắc"
+                        rules={[
+                            {
+                                required: true,
+                            },
+                        ]}
+                    >
+                        <Input className="w-full" />
                     </Form.Item>
                     <Form.Item
                         style={{ flex: 1 }}
                         name="customer_id"
-                        label="Công ty"
+                        label="Công ty của tôi"
                         rules={[
                             {
                                 required: true,
@@ -1014,29 +1085,7 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                     >
                         <Select
                             showSearch
-                            filterOption={(input, option) =>
-                                (option?.label ?? '')
-                                    .toLowerCase()
-                                    .includes(input.toLowerCase())
-                            }
-                            options={partners.map((i) => {
-                                return { value: i._id, label: i.name }
-                            })}
-                        />
-                    </Form.Item>
-                    <Form.Item
-                        name="buyer_id"
-                        style={{ flex: 1 }}
-                        label="Khách hàng"
-                        rules={[
-                            {
-                                required: true,
-                                message: 'Hãy chọn khách hàng',
-                            },
-                        ]}
-                    >
-                        <Select
-                            showSearch
+                            disabled
                             filterOption={(input, option) =>
                                 (option?.label ?? '')
                                     .toLowerCase()
@@ -1058,14 +1107,6 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                         <DatePicker style={{ width: '100%' }} />
                     </Form.Item>
                     <Form.Item
-                        name="quotation_date"
-                        style={{ flex: 1 }}
-                        label="Ngày báo giá"
-                        rules={[{ required: true, message: 'Nhập đầy đủ!' }]}
-                    >
-                        <DatePicker style={{ width: '100%' }} />
-                    </Form.Item>
-                    <Form.Item
                         name="date_ordered"
                         style={{ flex: 1 }}
                         label="Ngày đặt hàng"
@@ -1081,65 +1122,6 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                         <DatePicker style={{ width: '100%' }} />
                     </Form.Item>
                 </Space.Compact>
-                <Space.Compact style={{ display: 'flex' }}>
-                    <Form.Item
-                        name="delivered_to"
-                        label="Giao hàng đến"
-                        style={{ flex: 1 }}
-                    >
-                        <Input className="w-full" />
-                    </Form.Item>
-                    <Form.Item
-                        name="loading_cost"
-                        style={{ flex: 1 }}
-                        label="Chi phí bốc xếp"
-                    >
-                        <Input className="w-full" />
-                    </Form.Item>
-                    <Form.Item
-                        name="transfer_cost"
-                        label="Chi phí vận chuyển"
-                        style={{ flex: 1 }}
-                    >
-                        <Input className="w-full" />
-                    </Form.Item>
-                    <Form.Item
-                        name="payment_method_and_due_date"
-                        label="Hình thức và thời hạn thanh toán"
-                        style={{ flex: 1 }}
-                    >
-                        <Input className="w-full" />
-                    </Form.Item>
-                </Space.Compact>
-                {open?._id && (
-                    <Form.Item
-                        name="active"
-                        style={{ flex: 1 }}
-                        label="Trạng thái"
-                        rules={[
-                            {
-                                required: true,
-                                message: 'Hãy chọn trạng thái',
-                            },
-                        ]}
-                    >
-                        <Select
-                            showSearch
-                            filterOption={(input, option) =>
-                                (option?.label ?? '')
-                                    .toLowerCase()
-                                    .includes(input.toLowerCase())
-                            }
-                            options={[
-                                {
-                                    value: true,
-                                    label: 'Khả dụng',
-                                },
-                                { value: false, label: 'Bị hủy' },
-                            ]}
-                        />
-                    </Form.Item>
-                )}
 
                 <div style={{ marginBottom: 16 }}>
                     <Space size={100}>
@@ -1214,6 +1196,21 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                     }
                 })}
             />
+            {openMyContractDrawer && (
+                <MyContractDrawer
+                    open={openMyContractDrawer}
+                    onClose={() => setOpenMyContractDrawer(false)}
+                    getContracts={getContracts}
+                />
+            )}
+
+            {openMyPartnerDrawer && (
+                <MyPartnerDrawer
+                    open={openMyPartnerDrawer}
+                    onClose={() => setOpenMyPartnerDrawer(false)}
+                    getPartners={getPartners}
+                />
+            )}
         </Drawer>
     )
 }
@@ -1227,7 +1224,8 @@ const MyPurchaseRequestLineDrawer = ({
 }) => {
     const [form] = Form.useForm()
     const [loading, setLoading] = useState(false)
-    const { products, uoms } = useZustand()
+    const { products, uoms, setProductState } = useZustand()
+    const [openMyProductDrawer, setOpenMyProductDrawer] = useState(false)
 
     const handleOk = async () => {
         try {
@@ -1242,6 +1240,7 @@ const MyPurchaseRequestLineDrawer = ({
                 loss_rate,
                 note,
                 standard,
+                quotation_date,
                 quantity,
                 price_unit,
                 sub_total,
@@ -1259,6 +1258,7 @@ const MyPurchaseRequestLineDrawer = ({
                     contract_quantity,
                     need_quantity,
                     kho_tong,
+                    quotation_date,
                     loss_rate,
                     note,
                     standard,
@@ -1275,6 +1275,7 @@ const MyPurchaseRequestLineDrawer = ({
                     contract_quantity,
                     need_quantity,
                     kho_tong,
+                    quotation_date,
                     loss_rate,
                     note,
                     standard,
@@ -1291,6 +1292,16 @@ const MyPurchaseRequestLineDrawer = ({
             alert(error?.response?.data?.msg)
         } finally {
             setLoading(false)
+        }
+    }
+
+    const getProducts = async () => {
+        try {
+            const { data } = await axios.get('/api/get-products')
+            setProductState(data.data)
+        } catch (error) {
+            console.log(error)
+            alert(error?.response?.data?.msg)
         }
     }
 
@@ -1315,6 +1326,10 @@ const MyPurchaseRequestLineDrawer = ({
             form.setFieldValue('kho_tong', open?.kho_tong)
             form.setFieldValue('contract_quantity', open?.contract_quantity)
             form.setFieldValue('quy_cach', open?.quy_cach)
+            form.setFieldValue(
+                'quotation_date',
+                open?.quotation_date ? dayjs(open?.quotation_date) : undefined
+            )
             calculateTotalStock()
             calculatePrice()
         } else {
@@ -1370,6 +1385,17 @@ const MyPurchaseRequestLineDrawer = ({
                     >
                         <Select
                             showSearch
+                            allowClear
+                            prefix={
+                                <Button
+                                    size="small"
+                                    color="primary"
+                                    variant="solid"
+                                    onClick={() => setOpenMyProductDrawer(true)}
+                                >
+                                    <FaCirclePlus />
+                                </Button>
+                            }
                             onChange={(e) => {
                                 const respectiveProduct = products.find(
                                     (item) => item._id === e
@@ -1382,6 +1408,10 @@ const MyPurchaseRequestLineDrawer = ({
                                     form.setFieldValue(
                                         'quy_cach',
                                         respectiveProduct.quy_cach
+                                    )
+                                    form.setFieldValue(
+                                        'standard',
+                                        respectiveProduct.standard
                                     )
                                 }
                             }}
@@ -1616,6 +1646,13 @@ const MyPurchaseRequestLineDrawer = ({
                 </Space.Compact>
                 <Space.Compact style={{ display: 'flex' }}>
                     <Form.Item
+                        name="quotation_date"
+                        style={{ flex: 1 }}
+                        label="Ngày báo giá"
+                    >
+                        <DatePicker style={{ width: '100%' }} />
+                    </Form.Item>
+                    <Form.Item
                         name="standard"
                         label="Chất lượng tiêu chuẩn"
                         style={{ flex: 1 }}
@@ -1627,6 +1664,397 @@ const MyPurchaseRequestLineDrawer = ({
                     </Form.Item>
                 </Space.Compact>
             </Form>
+
+            {openMyProductDrawer && (
+                <MyProductDrawer
+                    open={openMyProductDrawer}
+                    onClose={() => setOpenMyProductDrawer(false)}
+                    getProducts={getProducts}
+                />
+            )}
         </Modal>
+    )
+}
+
+const MyContractDrawer = ({ open, onClose, getContracts }) => {
+    const [form] = Form.useForm()
+    const [loading, setLoading] = useState(false)
+    const { partners } = useZustand()
+    const handleOk = async () => {
+        try {
+            const { code, partner_id } = form.getFieldsValue()
+            if (!code) return alert('Vui lòng nhập đầy đủ thông tin bắt buộc')
+            setLoading(true)
+            if (open?._id) {
+                await axios.patch(`/api/update-contract/${open._id}`, {
+                    code,
+                    partner_id,
+                })
+            } else {
+                await axios.post('/api/create-contract', { code, partner_id })
+            }
+            onClose()
+            await getContracts()
+        } catch (error) {
+            console.log(error)
+            alert(error?.response?.data?.msg)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        if (open?._id) {
+            form.setFieldValue('code', open?.code)
+            form.setFieldValue('partner_id', open?.partner_id?._id)
+        }
+    }, [])
+
+    return (
+        <Drawer
+            title={open?._id ? 'Chỉnh sửa' : 'Tạo mới'}
+            closable={{ 'aria-label': 'Close Button' }}
+            onClose={onClose}
+            open={open}
+            width={600}
+            extra={
+                <Space>
+                    <Button
+                        onClick={handleOk}
+                        type="primary"
+                        loading={loading}
+                        disabled={loading}
+                    >
+                        Lưu
+                    </Button>
+                </Space>
+            }
+        >
+            <Form
+                form={form}
+                name="dynamic_ruleEdit"
+                onFinish={handleOk}
+                layout="vertical"
+            >
+                <Form.Item
+                    name="code"
+                    label="Mã hợp đồng"
+                    rules={[
+                        { required: true, message: 'Hãy nhập mã hợp đồng!' },
+                    ]}
+                >
+                    <Input className="w-full" />
+                </Form.Item>
+                <Form.Item name="partner_id" label="Khách hàng">
+                    <Select
+                        allowClear
+                        showSearch
+                        filterOption={(input, option) =>
+                            (option?.label ?? '')
+                                .toLowerCase()
+                                .includes(input.toLowerCase())
+                        }
+                        options={partners.map((i) => {
+                            return {
+                                value: i._id,
+                                label: i.name,
+                            }
+                        })}
+                    />
+                </Form.Item>
+            </Form>
+        </Drawer>
+    )
+}
+
+const MyProductDrawer = ({ open, onClose, getProducts }) => {
+    const [form] = Form.useForm()
+    const [loading, setLoading] = useState(false)
+    const { uoms } = useZustand()
+
+    const handleOk = async () => {
+        try {
+            const { name, code, quy_cach, standard, uom_id } =
+                form.getFieldsValue()
+            if (!name || !uom_id)
+                return alert('Vui lòng nhập đầy đủ thông tin bắt buộc')
+            setLoading(true)
+            if (open?._id) {
+                await axios.patch(`/api/update-product/${open._id}`, {
+                    name,
+                    code,
+                    quy_cach,
+                    standard,
+                    uom_id,
+                })
+            } else {
+                await axios.post('/api/create-product', {
+                    name,
+                    code,
+                    quy_cach,
+                    standard,
+                    uom_id,
+                })
+            }
+            onClose()
+            await getProducts()
+        } catch (error) {
+            console.log(error)
+            alert(error?.response?.data?.msg)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        if (open?._id) {
+            form.setFieldValue('name', open?.name)
+            form.setFieldValue('code', open?.code)
+            form.setFieldValue('quy_cach', open?.quy_cach)
+            form.setFieldValue('standard', open?.standard)
+            form.setFieldValue('uom_id', open?.uom_id?._id)
+        }
+    }, [])
+
+    return (
+        <Drawer
+            title={open?._id ? 'Chỉnh sửa' : 'Tạo mới'}
+            closable={{ 'aria-label': 'Close Button' }}
+            onClose={onClose}
+            open={open}
+            width={600}
+            extra={
+                <Space>
+                    <Button
+                        onClick={handleOk}
+                        type="primary"
+                        loading={loading}
+                        disabled={loading}
+                    >
+                        Lưu
+                    </Button>
+                </Space>
+            }
+        >
+            <Form
+                form={form}
+                name="dynamic_ruleEdit"
+                onFinish={handleOk}
+                layout="vertical"
+            >
+                <Form.Item
+                    name="name"
+                    label="Tên sản phẩm"
+                    rules={[
+                        { required: true, message: 'Hãy nhập tên sản phẩm!' },
+                    ]}
+                >
+                    <Input
+                        className="w-full"
+                        placeholder="Thùng carton ABC..."
+                    />
+                </Form.Item>
+                <Form.Item name="code" label="Mã sản phẩm">
+                    <Input className="w-full" placeholder="KT4AW2..." />
+                </Form.Item>
+                <Form.Item
+                    name="uom_id"
+                    label="Đơn vị đo lường"
+                    rules={[
+                        {
+                            required: true,
+                            message: 'Hãy chọn đơn vị đo lường',
+                        },
+                    ]}
+                >
+                    <Select
+                        showSearch
+                        filterOption={(input, option) =>
+                            (option?.label ?? '')
+                                .toLowerCase()
+                                .includes(input.toLowerCase())
+                        }
+                        options={uoms.map((i) => {
+                            return { value: i._id, label: i.name }
+                        })}
+                    />
+                </Form.Item>
+                <Form.Item name="quy_cach" label="Quy cách">
+                    <Input className="w-full" placeholder="30x40x70..." />
+                </Form.Item>
+                <Form.Item name="standard" label="Chất lượng tiêu chuẩn">
+                    <Input className="w-full" placeholder="30x40x70..." />
+                </Form.Item>
+            </Form>
+        </Drawer>
+    )
+}
+
+const MyPartnerDrawer = ({ open, onClose, getPartners }) => {
+    const [form] = Form.useForm()
+    const [loading, setLoading] = useState(false)
+
+    const handleOk = async () => {
+        try {
+            const {
+                code,
+                name,
+                address,
+                vat,
+                short_name,
+                district,
+                country,
+                replacedForContract,
+                phone,
+                fax,
+                accountNumber,
+                city,
+                accountBank,
+            } = form.getFieldsValue()
+            if (!name) return alert('Vui lòng nhập đầy đủ thông tin bắt buộc')
+            setLoading(true)
+            if (open?._id) {
+                await axios.patch(`/api/update-partner/${open._id}`, {
+                    code,
+                    name,
+                    address,
+                    vat,
+                    short_name,
+                    district,
+                    country,
+                    phone,
+                    replacedForContract,
+                    fax,
+                    accountNumber,
+                    city,
+                    accountBank,
+                })
+            } else {
+                await axios.post('/api/create-partner', {
+                    code,
+                    name,
+                    address,
+                    vat,
+                    district,
+                    country,
+                    phone,
+                    short_name,
+                    fax,
+                    replacedForContract,
+                    accountNumber,
+                    city,
+                    accountBank,
+                })
+            }
+            onClose()
+            await getPartners()
+        } catch (error) {
+            console.log(error)
+            alert(error?.response?.data?.msg)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        if (open?._id) {
+            form.setFieldValue('name', open?.name)
+            form.setFieldValue('code', open?.code)
+            form.setFieldValue('address', open?.address)
+            form.setFieldValue('district', open?.district)
+            form.setFieldValue('city', open?.city)
+            form.setFieldValue('short_name', open?.short_name)
+            form.setFieldValue('country', open?.country)
+            form.setFieldValue('vat', open?.vat)
+            form.setFieldValue('phone', open?.phone)
+            form.setFieldValue('replacedForContract', open?.replacedForContract)
+            form.setFieldValue('fax', open?.fax)
+            form.setFieldValue('accountNumber', open?.accountNumber)
+            form.setFieldValue('accountBank', open?.accountBank)
+        }
+    }, [])
+
+    return (
+        <Drawer
+            title={open?._id ? 'Chỉnh sửa' : 'Tạo mới'}
+            closable={{ 'aria-label': 'Close Button' }}
+            onClose={onClose}
+            open={open}
+            width={600}
+            extra={
+                <Space>
+                    <Button
+                        onClick={handleOk}
+                        type="primary"
+                        loading={loading}
+                        disabled={loading}
+                    >
+                        Lưu
+                    </Button>
+                </Space>
+            }
+        >
+            <Form
+                form={form}
+                name="dynamic_ruleEdit"
+                onFinish={handleOk}
+                layout="vertical"
+            >
+                <Form.Item
+                    name="name"
+                    label="Tên liên hệ"
+                    rules={[
+                        { required: true, message: 'Hãy nhập tên liên hệ!' },
+                    ]}
+                >
+                    <Input className="w-full" placeholder="Công ty ABC..." />
+                </Form.Item>
+                <Form.Item name="short_name" label="Tên viết tắt">
+                    <Input className="w-full" placeholder="TH..." />
+                </Form.Item>
+                <Form.Item name="code" label="Mã liên hệ">
+                    <Input className="w-full" placeholder="KT4AW2..." />
+                </Form.Item>
+                <Space>
+                    <Form.Item name="address" label="Địa chỉ">
+                        <Input className="w-full" />
+                    </Form.Item>
+                    <Form.Item name="district" label="Phường/Xã">
+                        <Input className="w-full" />
+                    </Form.Item>
+                    <Form.Item name="city" label="Thành phố">
+                        <Input className="w-full" />
+                    </Form.Item>
+                    <Form.Item name="country" label="Quốc gia">
+                        <Input className="w-full" />
+                    </Form.Item>
+                </Space>
+                <Space>
+                    <Form.Item name="phone" label="Số điện thoại">
+                        <Input className="w-full" />
+                    </Form.Item>
+                    <Form.Item name="vat" label="Mã số thuế">
+                        <Input className="w-full" />
+                    </Form.Item>
+                    <Form.Item name="fax" label="Fax">
+                        <Input className="w-full" />
+                    </Form.Item>
+                </Space>
+                <Space>
+                    <Form.Item name="accountNumber" label="Số tài khoản">
+                        <Input className="w-full" />
+                    </Form.Item>
+                    <Form.Item name="accountBank" label="Ngân hàng">
+                        <Input className="w-full" />
+                    </Form.Item>
+                    <Form.Item
+                        name="replacedForContract"
+                        label="Thay thế HĐ nguyên tắc"
+                    >
+                        <Input className="w-full" />
+                    </Form.Item>
+                </Space>
+            </Form>
+        </Drawer>
     )
 }

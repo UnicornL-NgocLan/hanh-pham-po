@@ -405,14 +405,14 @@ const MyDrawer = ({ open, onClose, getPartners }) => {
                 short_name,
                 district,
                 country,
+                replacedForContract,
                 phone,
                 fax,
                 accountNumber,
                 city,
                 accountBank,
             } = form.getFieldsValue()
-            if (!name || !code || !short_name)
-                return alert('Vui lòng nhập đầy đủ thông tin bắt buộc')
+            if (!name) return alert('Vui lòng nhập đầy đủ thông tin bắt buộc')
             setLoading(true)
             if (open?._id) {
                 await axios.patch(`/api/update-partner/${open._id}`, {
@@ -424,6 +424,7 @@ const MyDrawer = ({ open, onClose, getPartners }) => {
                     district,
                     country,
                     phone,
+                    replacedForContract,
                     fax,
                     accountNumber,
                     city,
@@ -440,6 +441,7 @@ const MyDrawer = ({ open, onClose, getPartners }) => {
                     phone,
                     short_name,
                     fax,
+                    replacedForContract,
                     accountNumber,
                     city,
                     accountBank,
@@ -466,6 +468,7 @@ const MyDrawer = ({ open, onClose, getPartners }) => {
             form.setFieldValue('country', open?.country)
             form.setFieldValue('vat', open?.vat)
             form.setFieldValue('phone', open?.phone)
+            form.setFieldValue('replacedForContract', open?.replacedForContract)
             form.setFieldValue('fax', open?.fax)
             form.setFieldValue('accountNumber', open?.accountNumber)
             form.setFieldValue('accountBank', open?.accountBank)
@@ -507,22 +510,10 @@ const MyDrawer = ({ open, onClose, getPartners }) => {
                 >
                     <Input className="w-full" placeholder="Công ty ABC..." />
                 </Form.Item>
-                <Form.Item
-                    name="short_name"
-                    label="Tên viết tắt"
-                    rules={[
-                        { required: true, message: 'Hãy nhập tên viết tắt!' },
-                    ]}
-                >
+                <Form.Item name="short_name" label="Tên viết tắt">
                     <Input className="w-full" placeholder="TH..." />
                 </Form.Item>
-                <Form.Item
-                    name="code"
-                    label="Mã liên hệ"
-                    rules={[
-                        { required: true, message: 'Hãy nhập mã liên hệ!' },
-                    ]}
-                >
+                <Form.Item name="code" label="Mã liên hệ">
                     <Input className="w-full" placeholder="KT4AW2..." />
                 </Form.Item>
                 <Space>
@@ -555,6 +546,12 @@ const MyDrawer = ({ open, onClose, getPartners }) => {
                         <Input className="w-full" />
                     </Form.Item>
                     <Form.Item name="accountBank" label="Ngân hàng">
+                        <Input className="w-full" />
+                    </Form.Item>
+                    <Form.Item
+                        name="replacedForContract"
+                        label="Thay thế HĐ nguyên tắc"
+                    >
                         <Input className="w-full" />
                     </Form.Item>
                 </Space>

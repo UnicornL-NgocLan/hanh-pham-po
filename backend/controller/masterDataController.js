@@ -17,17 +17,10 @@ const masterDataCtrl = {
                 phone,
                 fax,
                 accountNumber,
+                replacedForContract,
                 city,
                 accountBank,
             } = req.body
-
-            if (code) {
-                const existingRecord = await Partners.findOne({ code })
-                if (existingRecord)
-                    return res
-                        .status(400)
-                        .json({ msg: 'Đã tồn tại nhà cung cấp với mã này' })
-            }
 
             await Partners.create({
                 code,
@@ -36,6 +29,7 @@ const masterDataCtrl = {
                 short_name,
                 vat,
                 district,
+                replacedForContract,
                 country,
                 phone,
                 fax,
@@ -76,13 +70,13 @@ const masterDataCtrl = {
 
     createProduct: async (req, res) => {
         try {
-            const { code, name, uom_id, leadTime, quy_cach } = req.body
+            const { code, name, uom_id, standard, quy_cach } = req.body
 
             await Products.create({
                 code,
                 name,
                 uom_id,
-                leadTime,
+                standard,
                 quy_cach,
             })
             res.status(200).json({ msg: 'OK' })

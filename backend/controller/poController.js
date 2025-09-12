@@ -235,25 +235,19 @@ const poCtrl = {
     createPurchaseOrder: async (req, res) => {
         try {
             const {
-                quotation_date,
                 partner_id,
                 buyer_id,
                 date_deliveried,
                 delivered_to,
-                loading_cost,
-                transfer_cost,
                 date_ordered,
-                payment_method_and_due_date,
                 customer_id,
                 contract_id,
-                replaced_contract_id,
                 date,
+                replacedForContract,
             } = req.body
 
             if (
                 !contract_id ||
-                !replaced_contract_id ||
-                !quotation_date ||
                 !partner_id ||
                 !buyer_id ||
                 !customer_id ||
@@ -335,17 +329,13 @@ const poCtrl = {
                 customer_id,
                 contract_id,
                 date,
+                replacedForContract,
                 pr_name: newPurchaseRequestName,
-                quotation_date,
                 partner_id,
                 buyer_id,
                 date_deliveried,
                 delivered_to,
-                loading_cost,
-                transfer_cost,
                 date_ordered,
-                replaced_contract_id,
-                payment_method_and_due_date,
             })
             res.status(200).json({
                 msg: 'Create purchase order success.',
@@ -375,9 +365,7 @@ const poCtrl = {
     getPurchaseOrders: async (req, res) => {
         try {
             const data = await PurchaseOrder.find({})
-                .populate(
-                    'partner_id pr_id buyer_id customer_id contract_id replaced_contract_id'
-                )
+                .populate('partner_id buyer_id customer_id contract_id')
                 .sort({ date_ordered: -1 })
             res.status(200).json({ data })
         } catch (error) {
@@ -394,6 +382,7 @@ const poCtrl = {
                 quy_cach,
                 contract_quantity,
                 need_quantity,
+                quotation_date,
                 kho_tong,
                 loss_rate,
                 note,
@@ -418,6 +407,7 @@ const poCtrl = {
                 kho_tong,
                 loss_rate,
                 note,
+                quotation_date,
                 standard,
                 quantity,
                 price_unit,
@@ -528,9 +518,7 @@ const poCtrl = {
 
             const respectivePurchaseOrder = await PurchaseOrder.findOne({
                 _id: order_id,
-            }).populate(
-                'partner_id pr_id buyer_id customer_id contract_id replaced_contract_id'
-            )
+            }).populate('partner_id pr_id buyer_id customer_id contract_id')
             res.status(200).json({ data, po: respectivePurchaseOrder })
         } catch (error) {
             res.status(500).json({ msg: error.message })
