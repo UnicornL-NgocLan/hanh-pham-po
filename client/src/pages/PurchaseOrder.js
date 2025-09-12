@@ -140,8 +140,18 @@ const PurchaseOrder = () => {
                           .format('DD/MM/YYYY')
                     : 'thông báo sau'
                 const ordered_qty = finalList[i]?.quantity
-                const hop_dong = finalList[i]?.po?.contract_id?.code
-                const khach_hang = finalList[i]?.po?.buyer_id?.short_name
+
+                let contractString = ''
+                const contractList = finalList[i]?.po?.contract_id
+                for (let k = 0; k < contractList.length; k++) {
+                    if (k === contractList.length - 1) {
+                        contractString = contractString + contractList[k]?.code
+                    } else {
+                        contractString =
+                            contractString + contractList[k]?.code + ', '
+                    }
+                }
+                const khach_hang = finalList[i]?.po?.buyer_id?.name
                 const so_de_nghi = finalList[i]?.po?.pr_name || ''
                 const can_cu = `Căn cứ vào bảng đề nghị mua vật tư: Số đề nghị ${so_de_nghi} của Phòng Kinh Doanh`
                 processedData.push({
@@ -157,7 +167,7 @@ const PurchaseOrder = () => {
                     'Số lượng nhận': 0,
                     'Số lượng chưa nhận': 0,
                     'NHẬN HÀNG thực tế': 0,
-                    'Hợp đồng': hop_dong,
+                    'Hợp đồng': contractString,
                     'Khách hàng': khach_hang,
                     'Số đề nghị': so_de_nghi,
                     'Căn cứ': can_cu,
@@ -354,16 +364,6 @@ const PurchaseOrder = () => {
             render: (text) => <span>{Intl.NumberFormat().format(text)}</span>,
         },
         {
-            title: 'Trạng thái',
-            dataIndex: 'active',
-            key: 'active',
-            render: (active) => (
-                <Tag color={active ? 'green' : 'red'}>
-                    {active ? 'Khả dụng' : 'Bị hủy'}
-                </Tag>
-            ),
-        },
-        {
             title: 'Hành động',
             key: 'action',
             width: 100,
@@ -449,11 +449,22 @@ const PurchaseOrder = () => {
                 rowKey={(record) => record._id}
                 scroll={{ x: 'max-content' }}
                 dataSource={data.map((i) => {
+                    let contractString = ''
+                    const contractList = i.contract_id
+                    for (let k = 0; k < contractList.length; k++) {
+                        if (k === contractList.length - 1) {
+                            contractString =
+                                contractString + contractList[k]?.code
+                        } else {
+                            contractString =
+                                contractString + contractList[k]?.code + ', '
+                        }
+                    }
                     return {
                         ...i,
                         partner: i?.partner_id?.short_name,
                         buyer: i?.buyer_id?.short_name,
-                        contract: i?.contract_id?.code,
+                        contract: contractString,
                         pr: i?.pr_id?.name,
                     }
                 })}

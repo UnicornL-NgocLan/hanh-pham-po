@@ -514,7 +514,7 @@ export const exportPurchaseRequestToExcel = async (pr, data) => {
                     let contractString = ''
                     const contractList = pr.contract_id
                     for (let k = 0; k < contractList.length; k++) {
-                        if (k === contractList[k].length - 1) {
+                        if (k === contractList.length - 1) {
                             contractString =
                                 contractString + contractList[k]?.code
                         } else {
@@ -813,6 +813,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
                 data
                     .filter((item) => item.quotation_date)
                     .map((item) => item.quotation_date)
+                    .sort((a, b) => a - b)
             ),
         ]
         for (let k = 0; k < dateList.length; k++) {
