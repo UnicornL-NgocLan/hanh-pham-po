@@ -142,7 +142,7 @@ const PurchaseOrder = () => {
                 const ordered_qty = finalList[i]?.quantity
 
                 let contractString = ''
-                const contractList = finalList[i]?.po?.contract_id
+                const contractList = finalList[i]?.contract_id
                 for (let k = 0; k < contractList.length; k++) {
                     if (k === contractList.length - 1) {
                         contractString = contractString + contractList[k]?.code
@@ -151,7 +151,7 @@ const PurchaseOrder = () => {
                             contractString + contractList[k]?.code + ', '
                     }
                 }
-                const khach_hang = finalList[i]?.po?.buyer_id?.name
+                const khach_hang = finalList[i]?.buyer_id?.name
                 const so_de_nghi = finalList[i]?.po?.pr_name || ''
                 const can_cu = `Căn cứ vào bảng đề nghị mua vật tư: Số đề nghị ${so_de_nghi} của Phòng Kinh Doanh`
                 processedData.push({
@@ -309,13 +309,6 @@ const PurchaseOrder = () => {
             ...getColumnSearchProps('name'),
         },
         {
-            title: 'Hợp đồng',
-            dataIndex: 'contract',
-            key: 'contract',
-            render: (text) => <span>{text}</span>,
-            ...getColumnSearchProps('contract'),
-        },
-        {
             title: 'Ngày đặt hàng',
             dataIndex: 'date_ordered',
             key: 'date_ordered',
@@ -449,22 +442,9 @@ const PurchaseOrder = () => {
                 rowKey={(record) => record._id}
                 scroll={{ x: 'max-content' }}
                 dataSource={data.map((i) => {
-                    let contractString = ''
-                    const contractList = i.contract_id
-                    for (let k = 0; k < contractList.length; k++) {
-                        if (k === contractList.length - 1) {
-                            contractString =
-                                contractString + contractList[k]?.code
-                        } else {
-                            contractString =
-                                contractString + contractList[k]?.code + ', '
-                        }
-                    }
                     return {
                         ...i,
                         partner: i?.partner_id?.short_name,
-                        buyer: i?.buyer_id?.short_name,
-                        contract: contractString,
                         pr: i?.pr_id?.name,
                     }
                 })}
@@ -490,16 +470,8 @@ const MyDrawer = ({ open, onClose, getPos }) => {
     const searchInput = useRef(null)
     const [showPurchaseOrderLineDrawer, setShowPurchaseOrderLineDrawer] =
         useState(false)
-    const {
-        partners,
-        po_lines,
-        setPoLineState,
-        contracts,
-        setContractState,
-        setPartnerState,
-    } = useZustand()
-    const [filteredContracts, setFilteredContracts] = useState([])
-    const [openMyContractDrawer, setOpenMyContractDrawer] = useState(false)
+    const { partners, po_lines, setPoLineState, contracts, setPartnerState } =
+        useZustand()
     const [openMyPartnerDrawer, setOpenMyPartnerDrawer] = useState(false)
 
     const handleGetRespectiveLines = async () => {
@@ -513,16 +485,6 @@ const MyDrawer = ({ open, onClose, getPos }) => {
             alert(error?.response?.data?.msg || error)
         } finally {
             setLoading(false)
-        }
-    }
-
-    const getContracts = async () => {
-        try {
-            const { data } = await axios.get('/api/get-contracts')
-            setContractState(data.data)
-        } catch (error) {
-            console.log(error)
-            alert(error?.response?.data?.msg)
         }
     }
 
@@ -543,8 +505,6 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                 replacedForContract,
                 pr_name,
                 partner_id,
-                contract_id,
-                buyer_id,
                 date,
                 customer_id,
                 date_deliveried,
@@ -557,9 +517,7 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                 (!name && open?._id) ||
                 (!pr_name && open?._id) ||
                 !replacedForContract ||
-                !contract_id ||
                 !partner_id ||
-                !buyer_id ||
                 !date_ordered ||
                 !date ||
                 !customer_id
@@ -575,8 +533,6 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                     replacedForContract,
                     pr_name,
                     partner_id,
-                    buyer_id,
-                    contract_id,
                     date,
                     date_deliveried,
                     delivered_to,
@@ -590,9 +546,7 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                     replacedForContract,
                     pr_name,
                     partner_id,
-                    contract_id,
                     customer_id,
-                    buyer_id,
                     date,
                     date_deliveried,
                     delivered_to,
@@ -620,13 +574,8 @@ const MyDrawer = ({ open, onClose, getPos }) => {
         if (open?._id) {
             form.setFieldValue('name', open?.name)
             form.setFieldValue('replacedForContract', open?.replacedForContract)
-            form.setFieldValue(
-                'contract_id',
-                open?.contract_id?.map((i) => i._id)
-            )
             form.setFieldValue('partner_id', open?.partner_id?._id)
             form.setFieldValue('customer_id', open?.customer_id?._id)
-            form.setFieldValue('buyer_id', open?.buyer_id?._id)
             form.setFieldValue('pr_name', open?.pr_name)
             form.setFieldValue('date_ordered', dayjs(open?.date_ordered))
             form.setFieldValue('date', dayjs(open?.date))
@@ -794,6 +743,20 @@ const MyDrawer = ({ open, onClose, getPos }) => {
             render: (text) => <span>{text}</span>,
         },
         {
+            title: 'Khách hàng',
+            dataIndex: 'buyer',
+            key: 'buyer',
+            render: (text) => <span>{text}</span>,
+            ...getColumnSearchProps('buyer'),
+        },
+        {
+            title: 'Hợp đồng',
+            dataIndex: 'contract',
+            key: 'contract',
+            render: (text) => <span>{text}</span>,
+            ...getColumnSearchProps('contract'),
+        },
+        {
             title: 'Ngày báo giá',
             dataIndex: 'quotation_date',
             key: 'quotation_date',
@@ -894,13 +857,6 @@ const MyDrawer = ({ open, onClose, getPos }) => {
         }
     }
 
-    useEffect(() => {
-        const filterData = contracts.filter(
-            (i) => i?.partner_id?._id === form.getFieldValue('buyer_id')
-        )
-        setFilteredContracts(filterData)
-    }, [contracts])
-
     return (
         <Drawer
             title={open?._id ? 'Chỉnh sửa' : 'Tạo mới'}
@@ -948,83 +904,6 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                         label="Mã đơn mua hàng"
                     >
                         <Input className="w-full" disabled={!open?._id} />
-                    </Form.Item>
-                    <Form.Item
-                        name="buyer_id"
-                        style={{ flex: 1 }}
-                        label="Khách hàng"
-                        rules={[
-                            {
-                                required: true,
-                                message: 'Hãy chọn khách hàng',
-                            },
-                        ]}
-                    >
-                        <Select
-                            showSearch
-                            prefix={
-                                <Button
-                                    size="small"
-                                    color="primary"
-                                    variant="solid"
-                                    onClick={() => setOpenMyPartnerDrawer(true)}
-                                >
-                                    <FaCirclePlus />
-                                </Button>
-                            }
-                            allowClear
-                            onChange={(e) => {
-                                const filtered = contracts.filter(
-                                    (i) => i.partner_id?._id === e
-                                )
-                                setFilteredContracts(filtered)
-                            }}
-                            filterOption={(input, option) =>
-                                (option?.label ?? '')
-                                    .toLowerCase()
-                                    .includes(input.toLowerCase())
-                            }
-                            options={partners.map((i) => {
-                                return { value: i._id, label: i.name }
-                            })}
-                        />
-                    </Form.Item>
-                    <Form.Item
-                        style={{ flex: 1 }}
-                        name="contract_id"
-                        label="Hợp đồng"
-                        rules={[
-                            {
-                                required: true,
-                                message: 'Hãy chọn đề nghị mua hàng',
-                            },
-                        ]}
-                    >
-                        <Select
-                            mode="multiple"
-                            allowClear
-                            prefix={
-                                <Button
-                                    size="small"
-                                    color="primary"
-                                    variant="solid"
-                                    onClick={() =>
-                                        setOpenMyContractDrawer(true)
-                                    }
-                                >
-                                    <FaCirclePlus />
-                                </Button>
-                            }
-                            showSearch
-                            filterOption={(input, option) =>
-                                (option?.label ?? '')
-                                    .toLowerCase()
-                                    .includes(input.toLowerCase())
-                            }
-                            options={filteredContracts.map((i) => {
-                                return { value: i._id, label: i.code }
-                            })}
-                        />
                     </Form.Item>
                 </Space.Compact>
                 <Space.Compact style={{ display: 'flex' }}>
@@ -1195,6 +1074,17 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                 rowKey={(record) => record._id}
                 scroll={{ x: 'max-content' }}
                 dataSource={po_lines.map((i) => {
+                    let contractString = ''
+                    const contractList = i.contract_id
+                    for (let k = 0; k < contractList.length; k++) {
+                        if (k === contractList.length - 1) {
+                            contractString =
+                                contractString + contractList[k]?.code
+                        } else {
+                            contractString =
+                                contractString + contractList[k]?.code + ', '
+                        }
+                    }
                     return {
                         ...i,
                         product: `${
@@ -1203,17 +1093,12 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                                 : ''
                         }${i?.product_id?.name}`,
                         uom: i?.uom_id?.name,
+                        buyer: i?.buyer_id?.name,
+                        contract: contractString,
                         sl_can_them: i.contract_quantity - i.kho_tong,
                     }
                 })}
             />
-            {openMyContractDrawer && (
-                <MyContractDrawer
-                    open={openMyContractDrawer}
-                    onClose={() => setOpenMyContractDrawer(false)}
-                    getContracts={getContracts}
-                />
-            )}
 
             {openMyPartnerDrawer && (
                 <MyPartnerDrawer
@@ -1235,8 +1120,19 @@ const MyPurchaseRequestLineDrawer = ({
 }) => {
     const [form] = Form.useForm()
     const [loading, setLoading] = useState(false)
-    const { products, uoms, setProductState } = useZustand()
+    const {
+        products,
+        uoms,
+        setProductState,
+        setContractState,
+        setPartnerState,
+        partners,
+        contracts,
+    } = useZustand()
     const [openMyProductDrawer, setOpenMyProductDrawer] = useState(false)
+    const [filteredContracts, setFilteredContracts] = useState(contracts)
+    const [openMyContractDrawer, setOpenMyContractDrawer] = useState(false)
+    const [openMyPartnerDrawer, setOpenMyPartnerDrawer] = useState(false)
 
     const handleOk = async () => {
         try {
@@ -1250,10 +1146,12 @@ const MyPurchaseRequestLineDrawer = ({
                 kho_tong,
                 loss_rate,
                 note,
+                contract_id,
                 standard,
                 quotation_date,
                 quantity,
                 price_unit,
+                buyer_id,
                 sub_total,
             } = form.getFieldsValue()
             if (!product_id)
@@ -1271,6 +1169,8 @@ const MyPurchaseRequestLineDrawer = ({
                     kho_tong,
                     quotation_date,
                     loss_rate,
+                    buyer_id,
+                    contract_id,
                     note,
                     standard,
                     quantity,
@@ -1283,6 +1183,8 @@ const MyPurchaseRequestLineDrawer = ({
                     product_id,
                     uom_id,
                     quy_cach,
+                    buyer_id,
+                    contract_id,
                     contract_quantity,
                     need_quantity,
                     kho_tong,
@@ -1316,6 +1218,35 @@ const MyPurchaseRequestLineDrawer = ({
         }
     }
 
+    const getPartners = async () => {
+        try {
+            const { data } = await axios.get('/api/get-partners')
+            setPartnerState(data.data)
+        } catch (error) {
+            console.log(error)
+            alert(error?.response?.data?.msg)
+        }
+    }
+
+    const getContracts = async () => {
+        try {
+            const { data } = await axios.get('/api/get-contracts')
+            setContractState(data.data)
+
+            if (form.getFieldValue('buyer_id')) {
+                const filtered = data.data.filter(
+                    (i) => i.partner_id?._id === form.getFieldValue('buyer_id')
+                )
+                setFilteredContracts(filtered)
+            } else {
+                setFilteredContracts(data.data)
+            }
+        } catch (error) {
+            console.log(error)
+            alert(error?.response?.data?.msg)
+        }
+    }
+
     const calculatePrice = () => {
         const quantity = form.getFieldValue('quantity')
         const price_unit = form.getFieldValue('price_unit')
@@ -1337,11 +1268,30 @@ const MyPurchaseRequestLineDrawer = ({
             form.setFieldValue('kho_tong', open?.kho_tong)
             form.setFieldValue('contract_quantity', open?.contract_quantity)
             form.setFieldValue('quy_cach', open?.quy_cach)
+            form.setFieldValue('buyer_id', open?.buyer_id?._id)
+            form.setFieldValue(
+                'contract_id',
+                open?.contract_id?.map((i) => i._id)
+            )
             form.setFieldValue(
                 'quotation_date',
                 open?.quotation_date ? dayjs(open?.quotation_date) : undefined
             )
-            calculateTotalStock()
+            const contract_quantity = form.getFieldValue('contract_quantity')
+            const kho_tong = form.getFieldValue('kho_tong')
+            form.setFieldValue(
+                'theoritical_quantity',
+                contract_quantity - kho_tong
+            )
+
+            if (open?.buyer_id?._id) {
+                const filtered = contracts.filter(
+                    (i) => i.partner_id?._id === open?.buyer_id?._id
+                )
+                setFilteredContracts(filtered)
+            } else {
+                setFilteredContracts(contracts)
+            }
             calculatePrice()
         } else {
             form.setFieldValue('quantity', 0)
@@ -1359,7 +1309,14 @@ const MyPurchaseRequestLineDrawer = ({
 
         const kho_tong = form.getFieldValue('kho_tong')
         form.setFieldValue('theoritical_quantity', contract_quantity - kho_tong)
-        form.setFieldValue('quantity', contract_quantity - kho_tong + loss_rate)
+        form.setFieldValue(
+            'quantity',
+            Math.round(
+                contract_quantity -
+                    kho_tong +
+                    (loss_rate * (contract_quantity - kho_tong)) / 100
+            )
+        )
 
         calculatePrice()
     }
@@ -1463,6 +1420,116 @@ const MyPurchaseRequestLineDrawer = ({
                     </Form.Item>
                     <Form.Item name="quy_cach" label="Quy cách">
                         <Input className="w-full" />
+                    </Form.Item>
+                </Space.Compact>
+                <Space.Compact style={{ display: 'flex' }}>
+                    <Form.Item
+                        style={{ flex: 1 }}
+                        name="contract_id"
+                        label="Hợp đồng"
+                        rules={[
+                            {
+                                required: true,
+                                message: 'Hãy chọn hợp đồng',
+                            },
+                        ]}
+                    >
+                        <Select
+                            mode="multiple"
+                            allowClear
+                            prefix={
+                                <Button
+                                    size="small"
+                                    color="primary"
+                                    variant="solid"
+                                    onClick={() =>
+                                        setOpenMyContractDrawer(true)
+                                    }
+                                >
+                                    <FaCirclePlus />
+                                </Button>
+                            }
+                            showSearch
+                            onChange={(e) => {
+                                if (e.length === 1) {
+                                    const myContract = contracts.find(
+                                        (item) => item._id === e[0]
+                                    )
+
+                                    if (myContract) {
+                                        let code = myContract.code.slice(2, 5)
+                                        const respectivePartner =
+                                            partners?.find(
+                                                (item) => item.code === code
+                                            )
+                                        if (respectivePartner) {
+                                            form.setFieldValue(
+                                                'buyer_id',
+                                                respectivePartner?._id
+                                            )
+                                            const filterData = contracts.filter(
+                                                (i) =>
+                                                    i?.partner_id?._id ===
+                                                    respectivePartner?._id
+                                            )
+                                            setFilteredContracts(filterData)
+                                        }
+                                    }
+                                }
+                            }}
+                            filterOption={(input, option) =>
+                                (option?.label ?? '')
+                                    .toLowerCase()
+                                    .includes(input.toLowerCase())
+                            }
+                            options={filteredContracts.map((i) => {
+                                return { value: i._id, label: i.code }
+                            })}
+                        />
+                    </Form.Item>
+                    <Form.Item
+                        name="buyer_id"
+                        style={{ flex: 1 }}
+                        label="Khách hàng"
+                        rules={[
+                            {
+                                required: true,
+                                message: 'Hãy chọn khách hàng',
+                            },
+                        ]}
+                    >
+                        <Select
+                            showSearch
+                            prefix={
+                                <Button
+                                    size="small"
+                                    color="primary"
+                                    variant="solid"
+                                    onClick={() => setOpenMyPartnerDrawer(true)}
+                                >
+                                    <FaCirclePlus />
+                                </Button>
+                            }
+                            allowClear
+                            onChange={(e) => {
+                                if (e) {
+                                    const filtered = contracts.filter(
+                                        (i) => i.partner_id?._id === e
+                                    )
+                                    setFilteredContracts(filtered)
+                                } else {
+                                    setFilteredContracts(contracts)
+                                }
+                            }}
+                            filterOption={(input, option) =>
+                                (option?.label ?? '')
+                                    .toLowerCase()
+                                    .includes(input.toLowerCase())
+                            }
+                            options={partners.map((i) => {
+                                return { value: i._id, label: i.name }
+                            })}
+                        />
                     </Form.Item>
                 </Space.Compact>
                 <Space.Compact style={{ display: 'flex' }}>
@@ -1683,6 +1750,20 @@ const MyPurchaseRequestLineDrawer = ({
                     getProducts={getProducts}
                 />
             )}
+            {openMyPartnerDrawer && (
+                <MyPartnerDrawer
+                    open={openMyPartnerDrawer}
+                    onClose={() => setOpenMyPartnerDrawer(false)}
+                    getPartners={getPartners}
+                />
+            )}
+            {openMyContractDrawer && (
+                <MyContractDrawer
+                    open={openMyContractDrawer}
+                    onClose={() => setOpenMyContractDrawer(false)}
+                    getContracts={getContracts}
+                />
+            )}
         </Modal>
     )
 }
@@ -1754,7 +1835,27 @@ const MyContractDrawer = ({ open, onClose, getContracts }) => {
                         { required: true, message: 'Hãy nhập mã hợp đồng!' },
                     ]}
                 >
-                    <Input className="w-full" />
+                    <Input
+                        className="w-full"
+                        onChange={(e) => {
+                            if (
+                                e.target.value.length > 4 &&
+                                !form.getFieldValue('partner_id')
+                            ) {
+                                let code = e.target.value.slice(2, 5)
+                                console.log(code)
+                                const respectivePartner = partners?.find(
+                                    (item) => item.code === code
+                                )
+                                if (respectivePartner) {
+                                    form.setFieldValue(
+                                        'partner_id',
+                                        respectivePartner?._id
+                                    )
+                                }
+                            }
+                        }}
+                    />
                 </Form.Item>
                 <Form.Item name="partner_id" label="Khách hàng">
                     <Select

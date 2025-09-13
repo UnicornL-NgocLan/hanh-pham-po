@@ -512,7 +512,7 @@ export const exportPurchaseRequestToExcel = async (pr, data) => {
                     break
                 case 'E':
                     let contractString = ''
-                    const contractList = pr.contract_id
+                    const contractList = data[i]?.contract_id
                     for (let k = 0; k < contractList.length; k++) {
                         if (k === contractList.length - 1) {
                             contractString =
@@ -522,7 +522,7 @@ export const exportPurchaseRequestToExcel = async (pr, data) => {
                                 contractString + contractList[k]?.code + ', '
                         }
                     }
-                    cellValue = `${pr?.buyer_id?.name} - ${contractString}`
+                    cellValue = `${data[i]?.buyer_id?.name} - ${contractString}`
                     break
                 case 'F':
                     cellValue = data[i].contract_quantity
@@ -812,10 +812,10 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             ...new Set(
                 data
                     .filter((item) => item.quotation_date)
+                    .sort((a, b) => b.quotation_date - a.quotation_date)
                     .map((item) => item.quotation_date)
-                    .sort((a, b) => a - b)
             ),
-        ]
+        ].sort()
         for (let k = 0; k < dateList.length; k++) {
             if (k === dateList.length - 1) {
                 dateString =

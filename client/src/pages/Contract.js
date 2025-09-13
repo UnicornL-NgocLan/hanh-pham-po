@@ -275,7 +275,27 @@ const MyDrawer = ({ open, onClose, getContracts }) => {
                         { required: true, message: 'Hãy nhập mã hợp đồng!' },
                     ]}
                 >
-                    <Input className="w-full" />
+                    <Input
+                        className="w-full"
+                        onChange={(e) => {
+                            if (
+                                e.target.value.length > 4 &&
+                                !form.getFieldValue('partner_id')
+                            ) {
+                                let code = e.target.value.slice(2, 5)
+                                console.log(code)
+                                const respectivePartner = partners?.find(
+                                    (item) => item.code === code
+                                )
+                                if (respectivePartner) {
+                                    form.setFieldValue(
+                                        'partner_id',
+                                        respectivePartner?._id
+                                    )
+                                }
+                            }
+                        }}
+                    />
                 </Form.Item>
                 <Form.Item name="partner_id" label="Khách hàng">
                     <Select

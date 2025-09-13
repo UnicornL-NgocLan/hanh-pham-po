@@ -21,6 +21,13 @@ const PurchaseOrderLineSchema = mongoose.Schema(
         kho_tan_long: Number,
         kho_an_phu: Number,
         note: String,
+        buyer_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner' },
+        contract_id: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Contract',
+            },
+        ],
     },
     { timestamps: true }
 )

@@ -236,32 +236,25 @@ const poCtrl = {
         try {
             const {
                 partner_id,
-                buyer_id,
                 date_deliveried,
                 delivered_to,
                 date_ordered,
                 customer_id,
-                contract_id,
                 date,
                 replacedForContract,
             } = req.body
 
             if (
-                !contract_id ||
                 !partner_id ||
-                !buyer_id ||
                 !customer_id ||
-                !date_ordered
+                !date_ordered ||
+                !replacedForContract
             )
                 return res.status(400).json({ msg: 'Missing required fields.' })
 
             const partner = await Partner.findById(partner_id)
             if (!partner)
                 return res.status(400).json({ msg: 'Partner does not exist.' })
-
-            const customer = await Partner.findById(buyer_id)
-            if (!customer)
-                return res.status(400).json({ msg: 'Customer does not exist.' })
 
             let plus7HoursDate = moment(date).add(7, 'hours').toDate()
             plus7HoursDate.setHours(plus7HoursDate.getHours() + 7)
@@ -327,12 +320,10 @@ const poCtrl = {
             const data = await PurchaseOrder.create({
                 name: newPurchaseOrderName,
                 customer_id,
-                contract_id,
                 date,
                 replacedForContract,
                 pr_name: newPurchaseRequestName,
                 partner_id,
-                buyer_id,
                 date_deliveried,
                 delivered_to,
                 date_ordered,
@@ -365,7 +356,7 @@ const poCtrl = {
     getPurchaseOrders: async (req, res) => {
         try {
             const data = await PurchaseOrder.find({})
-                .populate('partner_id buyer_id customer_id contract_id')
+                .populate('partner_id customer_id')
                 .sort({ date_ordered: -1 })
             res.status(200).json({ data })
         } catch (error) {
@@ -385,6 +376,8 @@ const poCtrl = {
                 quotation_date,
                 kho_tong,
                 loss_rate,
+                buyer_id,
+                contract_id,
                 note,
                 standard,
                 quantity,
@@ -392,7 +385,7 @@ const poCtrl = {
                 sub_total,
             } = req.body
 
-            if (!order_id || !product_id || !uom_id)
+            if (!order_id || !product_id || !uom_id || !buyer_id)
                 return res
                     .status(400)
                     .json({ msg: 'Please fill in all required fields.' })
@@ -406,6 +399,8 @@ const poCtrl = {
                 need_quantity,
                 kho_tong,
                 loss_rate,
+                buyer_id,
+                contract_id,
                 note,
                 quotation_date,
                 standard,
@@ -423,7 +418,6 @@ const poCtrl = {
             }
 
             total_tax = (total_amount_untaxed * 8) / 100
-            console.log(total_amount_untaxed, total_tax)
             await PurchaseOrder.findOneAndUpdate(
                 { _id: order_id },
                 {
@@ -514,11 +508,11 @@ const poCtrl = {
             const { order_id } = req.params
             const data = await PurchaseOrderLine.find({
                 order_id: order_id,
-            }).populate('product_id uom_id')
+            }).populate('product_id uom_id contract_id buyer_id')
 
             const respectivePurchaseOrder = await PurchaseOrder.findOne({
                 _id: order_id,
-            }).populate('partner_id pr_id buyer_id customer_id contract_id')
+            }).populate('partner_id pr_id customer_id')
             res.status(200).json({ data, po: respectivePurchaseOrder })
         } catch (error) {
             res.status(500).json({ msg: error.message })
