@@ -543,7 +543,9 @@ export const exportPurchaseRequestToExcel = async (pr, data) => {
                     cellValue = data[i].contract_quantity - data[i].kho_tong
                     break
                 case 'L':
-                    cellValue = data[i].loss_rate
+                    cellValue =
+                        data[i].quantity -
+                        (data[i].contract_quantity - data[i].kho_tong)
                     break
                 case 'M':
                     cellValue = data[i].quantity

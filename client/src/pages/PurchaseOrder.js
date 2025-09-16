@@ -17,6 +17,7 @@ import { FaTrash } from 'react-icons/fa'
 import { useZustand } from '../zustand.js'
 import moment from 'moment'
 import Highlighter from 'react-highlight-words'
+import { MdModeEdit } from 'react-icons/md'
 import { DeleteFilled, SearchOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { IoPrint } from 'react-icons/io5'
@@ -473,6 +474,8 @@ const MyDrawer = ({ open, onClose, getPos }) => {
     const { partners, po_lines, setPoLineState, contracts, setPartnerState } =
         useZustand()
     const [openMyPartnerDrawer, setOpenMyPartnerDrawer] = useState(false)
+    const [filteredContracts, setFilteredContracts] = useState(contracts)
+    const [openMyContractDrawer, setOpenMyContractDrawer] = useState(false)
 
     const handleGetRespectiveLines = async () => {
         try {
@@ -909,6 +912,128 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                 <Space.Compact style={{ display: 'flex' }}>
                     <Form.Item
                         style={{ flex: 1 }}
+                        name="contract_id"
+                        label="Hợp đồng"
+                    >
+                        <Select
+                            mode="multiple"
+                            allowClear
+                            prefix={
+                                <Button
+                                    size="small"
+                                    color="primary"
+                                    variant="solid"
+                                    onClick={() =>
+                                        setOpenMyContractDrawer(true)
+                                    }
+                                >
+                                    <FaCirclePlus />
+                                </Button>
+                            }
+                            showSearch
+                            onChange={(e) => {
+                                if (e.length === 1) {
+                                    const myContract = contracts.find(
+                                        (item) => item._id === e[0]
+                                    )
+
+                                    if (myContract) {
+                                        let code = myContract.code.slice(2, 5)
+                                        const respectivePartner =
+                                            partners?.find(
+                                                (item) => item.code === code
+                                            )
+                                        if (respectivePartner) {
+                                            form.setFieldValue(
+                                                'buyer_id',
+                                                respectivePartner?._id
+                                            )
+                                            const filterData = contracts.filter(
+                                                (i) =>
+                                                    i?.partner_id?._id ===
+                                                    respectivePartner?._id
+                                            )
+                                            setFilteredContracts(filterData)
+                                        }
+                                    }
+                                }
+                            }}
+                            filterOption={(input, option) =>
+                                (option?.label ?? '')
+                                    .toLowerCase()
+                                    .includes(input.toLowerCase())
+                            }
+                            options={filteredContracts.map((i) => {
+                                return { value: i._id, label: i.code }
+                            })}
+                        />
+                    </Form.Item>
+                    <Form.Item
+                        name="buyer_id"
+                        style={{ flex: 1 }}
+                        label="Khách hàng"
+                    >
+                        <Select
+                            showSearch
+                            prefix={
+                                <Space>
+                                    <Button
+                                        size="small"
+                                        color="primary"
+                                        variant="solid"
+                                        onClick={() =>
+                                            setOpenMyPartnerDrawer(true)
+                                        }
+                                    >
+                                        <FaCirclePlus />
+                                    </Button>
+                                    <Button
+                                        size="small"
+                                        color="primary"
+                                        variant="solid"
+                                        onClick={() => {
+                                            const value =
+                                                form.getFieldValue('buyer_id')
+                                            const respectivePartner =
+                                                partners.find(
+                                                    (item) => item._id === value
+                                                )
+                                            if (respectivePartner) {
+                                                setOpenMyPartnerDrawer(
+                                                    respectivePartner
+                                                )
+                                            }
+                                        }}
+                                    >
+                                        <MdModeEdit />
+                                    </Button>
+                                </Space>
+                            }
+                            allowClear
+                            onChange={(e) => {
+                                if (e) {
+                                    const filtered = contracts.filter(
+                                        (i) => i.partner_id?._id === e
+                                    )
+                                    setFilteredContracts(filtered)
+                                } else {
+                                    setFilteredContracts(contracts)
+                                }
+                            }}
+                            filterOption={(input, option) =>
+                                (option?.label ?? '')
+                                    .toLowerCase()
+                                    .includes(input.toLowerCase())
+                            }
+                            options={partners.map((i) => {
+                                return { value: i._id, label: i.name }
+                            })}
+                        />
+                    </Form.Item>
+                </Space.Compact>
+                <Space.Compact style={{ display: 'flex' }}>
+                    <Form.Item
+                        style={{ flex: 1 }}
                         name="partner_id"
                         label="Nhà cung cấp"
                         rules={[
@@ -921,14 +1046,38 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                         <Select
                             showSearch
                             prefix={
-                                <Button
-                                    size="small"
-                                    color="primary"
-                                    variant="solid"
-                                    onClick={() => setOpenMyPartnerDrawer(true)}
-                                >
-                                    <FaCirclePlus />
-                                </Button>
+                                <Space>
+                                    <Button
+                                        size="small"
+                                        color="primary"
+                                        variant="solid"
+                                        onClick={() =>
+                                            setOpenMyPartnerDrawer(true)
+                                        }
+                                    >
+                                        <FaCirclePlus />
+                                    </Button>
+                                    <Button
+                                        size="small"
+                                        color="primary"
+                                        variant="solid"
+                                        onClick={() => {
+                                            const value =
+                                                form.getFieldValue('partner_id')
+                                            const respectivePartner =
+                                                partners.find(
+                                                    (item) => item._id === value
+                                                )
+                                            if (respectivePartner) {
+                                                setOpenMyPartnerDrawer(
+                                                    respectivePartner
+                                                )
+                                            }
+                                        }}
+                                    >
+                                        <MdModeEdit />
+                                    </Button>
+                                </Space>
                             }
                             filterOption={(input, option) =>
                                 (option?.label ?? '')
@@ -1062,6 +1211,7 @@ const MyDrawer = ({ open, onClose, getPos }) => {
             {showPurchaseOrderLineDrawer && (
                 <MyPurchaseRequestLineDrawer
                     open={showPurchaseOrderLineDrawer}
+                    outerForm={form}
                     handleGetRespectiveLines={handleGetRespectiveLines}
                     onClose={() => setShowPurchaseOrderLineDrawer(false)}
                     pr_id={open?._id}
@@ -1117,6 +1267,7 @@ const MyPurchaseRequestLineDrawer = ({
     pr_id,
     handleGetRespectiveLines,
     getPos,
+    outerForm,
 }) => {
     const [form] = Form.useForm()
     const [loading, setLoading] = useState(false)
@@ -1321,6 +1472,20 @@ const MyPurchaseRequestLineDrawer = ({
         calculatePrice()
     }
 
+    useEffect(() => {
+        if (!open?._id) {
+            const outerPartner = outerForm?.getFieldValue('buyer_id')
+            if (outerPartner) {
+                form.setFieldValue('buyer_id', outerPartner)
+            }
+
+            const outerContract = outerForm?.getFieldValue('contract_id')
+            if (outerContract) {
+                form.setFieldValue('contract_id', outerContract)
+            }
+        }
+    }, [])
+
     return (
         <Modal
             title={open?._id ? 'Chỉnh sửa' : 'Tạo mới'}
@@ -1355,14 +1520,38 @@ const MyPurchaseRequestLineDrawer = ({
                             showSearch
                             allowClear
                             prefix={
-                                <Button
-                                    size="small"
-                                    color="primary"
-                                    variant="solid"
-                                    onClick={() => setOpenMyProductDrawer(true)}
-                                >
-                                    <FaCirclePlus />
-                                </Button>
+                                <Space>
+                                    <Button
+                                        size="small"
+                                        color="primary"
+                                        variant="solid"
+                                        onClick={() =>
+                                            setOpenMyProductDrawer(true)
+                                        }
+                                    >
+                                        <FaCirclePlus />
+                                    </Button>
+                                    <Button
+                                        size="small"
+                                        color="primary"
+                                        variant="solid"
+                                        onClick={() => {
+                                            const value =
+                                                form.getFieldValue('product_id')
+                                            const respectivePartner =
+                                                products.find(
+                                                    (item) => item._id === value
+                                                )
+                                            if (respectivePartner) {
+                                                setOpenMyProductDrawer(
+                                                    respectivePartner
+                                                )
+                                            }
+                                        }}
+                                    >
+                                        <MdModeEdit />
+                                    </Button>
+                                </Space>
                             }
                             onChange={(e) => {
                                 const respectiveProduct = products.find(
@@ -1501,14 +1690,38 @@ const MyPurchaseRequestLineDrawer = ({
                         <Select
                             showSearch
                             prefix={
-                                <Button
-                                    size="small"
-                                    color="primary"
-                                    variant="solid"
-                                    onClick={() => setOpenMyPartnerDrawer(true)}
-                                >
-                                    <FaCirclePlus />
-                                </Button>
+                                <Space>
+                                    <Button
+                                        size="small"
+                                        color="primary"
+                                        variant="solid"
+                                        onClick={() =>
+                                            setOpenMyPartnerDrawer(true)
+                                        }
+                                    >
+                                        <FaCirclePlus />
+                                    </Button>
+                                    <Button
+                                        size="small"
+                                        color="primary"
+                                        variant="solid"
+                                        onClick={() => {
+                                            const value =
+                                                form.getFieldValue('buyer_id')
+                                            const respectivePartner =
+                                                partners.find(
+                                                    (item) => item._id === value
+                                                )
+                                            if (respectivePartner) {
+                                                setOpenMyPartnerDrawer(
+                                                    respectivePartner
+                                                )
+                                            }
+                                        }}
+                                    >
+                                        <MdModeEdit />
+                                    </Button>
+                                </Space>
                             }
                             allowClear
                             onChange={(e) => {
