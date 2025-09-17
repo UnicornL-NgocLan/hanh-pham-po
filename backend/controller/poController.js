@@ -242,6 +242,8 @@ const poCtrl = {
                 customer_id,
                 date,
                 replacedForContract,
+                contract_id,
+                buyer_id,
             } = req.body
 
             if (
@@ -326,6 +328,8 @@ const poCtrl = {
                 partner_id,
                 date_deliveried,
                 delivered_to,
+                contract_id,
+                buyer_id,
                 date_ordered,
             })
             res.status(200).json({
@@ -356,7 +360,7 @@ const poCtrl = {
     getPurchaseOrders: async (req, res) => {
         try {
             const data = await PurchaseOrder.find({})
-                .populate('partner_id customer_id')
+                .populate('partner_id customer_id contract_id buyer_id')
                 .sort({ date_ordered: -1 })
             res.status(200).json({ data })
         } catch (error) {

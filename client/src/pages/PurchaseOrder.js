@@ -153,6 +153,8 @@ const PurchaseOrder = () => {
                     }
                 }
                 const khach_hang = finalList[i]?.buyer_id?.name
+                const quy_cach = finalList[i]?.quy_cach
+                const tieu_chuan = finalList[i]?.standard
                 const so_de_nghi = finalList[i]?.po?.pr_name || ''
                 const can_cu = `Căn cứ vào bảng đề nghị mua vật tư: Số đề nghị ${so_de_nghi} của Phòng Kinh Doanh`
                 processedData.push({
@@ -162,6 +164,8 @@ const PurchaseOrder = () => {
                     'Số Đơn Hàng': so_don_hang,
                     'Nhà cung cấp': ncc_short_name,
                     'Tên Hàng': product_name,
+                    'Quy cách': quy_cach,
+                    'Tiêu chuẩn': tieu_chuan,
                     'Ngày đơn hàng': ngay_don_hang,
                     'Ngày nhận hàng': ngay_nhan_hang,
                     'Số lượng đặt': ordered_qty,
@@ -310,6 +314,20 @@ const PurchaseOrder = () => {
             ...getColumnSearchProps('name'),
         },
         {
+            title: 'Người mua',
+            dataIndex: 'buyer',
+            key: 'buyer',
+            render: (text) => <span>{text}</span>,
+            ...getColumnSearchProps('buyer'),
+        },
+        {
+            title: 'Hợp đồng',
+            dataIndex: 'contract',
+            key: 'contract',
+            render: (text) => <span>{text}</span>,
+            ...getColumnSearchProps('contract'),
+        },
+        {
             title: 'Ngày đặt hàng',
             dataIndex: 'date_ordered',
             key: 'date_ordered',
@@ -443,10 +461,23 @@ const PurchaseOrder = () => {
                 rowKey={(record) => record._id}
                 scroll={{ x: 'max-content' }}
                 dataSource={data.map((i) => {
+                    let contractString = ''
+                    const contractList = i.contract_id
+                    for (let k = 0; k < contractList.length; k++) {
+                        if (k === contractList.length - 1) {
+                            contractString =
+                                contractString + contractList[k]?.code
+                        } else {
+                            contractString =
+                                contractString + contractList[k]?.code + ', '
+                        }
+                    }
                     return {
                         ...i,
                         partner: i?.partner_id?.short_name,
                         pr: i?.pr_id?.name,
+                        buyer: i?.buyer_id?.name,
+                        contract: contractString,
                     }
                 })}
             />
@@ -514,6 +545,8 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                 delivered_to,
                 date_ordered,
                 active,
+                contract_id,
+                buyer_id,
             } = form.getFieldsValue()
 
             if (
@@ -542,6 +575,8 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                     customer_id,
                     date_ordered,
                     active,
+                    contract_id,
+                    buyer_id,
                 })
             } else {
                 const { data } = await axios.post('/api/create-po', {
@@ -554,6 +589,8 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                     date_deliveried,
                     delivered_to,
                     date_ordered,
+                    contract_id,
+                    buyer_id,
                 })
                 po_id_created = data?.data?._id
             }
@@ -582,6 +619,11 @@ const MyDrawer = ({ open, onClose, getPos }) => {
             form.setFieldValue('pr_name', open?.pr_name)
             form.setFieldValue('date_ordered', dayjs(open?.date_ordered))
             form.setFieldValue('date', dayjs(open?.date))
+            form.setFieldValue('buyer_id', open?.buyer_id?._id)
+            form.setFieldValue(
+                'contract_id',
+                open?.contract_id?.map((i) => i._id)
+            )
             form.setFieldValue(
                 'date_deliveried',
                 open?.date_deliveried ? dayjs(open?.date_deliveried) : null

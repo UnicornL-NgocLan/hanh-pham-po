@@ -79,7 +79,7 @@ export const exportPurchaseRequestToExcel = async (pr, data) => {
     // Place image at A1
     worksheet.addImage(imageId, {
         tl: { col: 0, row: 0 }, // top-left corner at column A (0), row 1 (0)
-        ext: { width: 110, height: 98 }, // size in pixels
+        ext: { width: 143, height: 127 }, // size in pixels
     })
 
     worksheet.mergeCells('A5:N5')
@@ -595,11 +595,9 @@ export const exportPurchaseRequestToExcel = async (pr, data) => {
         horizontal: 'center',
     }
 
-    worksheet.getCell(`M${endNumRow + 1}`).value = `${String(
-        moment(pr.date).add(7, 'hours').date() // use .date() instead of getDate()
-    ).padStart(2, '0')}/${String(
-        moment(pr.date).add(7, 'hours').month() + 1 // use .month() instead of getMonth()
-    ).padStart(2, '0')}/${moment(pr.date).add(7, 'hours').year()}`
+    worksheet.getCell(`M${endNumRow + 1}`).value = moment(pr.date)
+        .add(7, 'hours')
+        .format('DD/MM/YYYY')
     // Apply font style
     worksheet.getCell(`M${endNumRow + 1}`).font = {
         name: 'Times New Roman',
@@ -639,6 +637,20 @@ export const exportPurchaseRequestToExcel = async (pr, data) => {
         size: 14,
     }
     worksheet.getCell(`L${endNumRow + 2}:M${endNumRow + 2}`).alignment = {
+        horizontal: 'center',
+        vertical: 'middle',
+    }
+
+    worksheet.mergeCells(`F${endNumRow + 10}:G${endNumRow + 10}`)
+    worksheet.getCell(
+        `F${endNumRow + 10}:G${endNumRow + 10}`
+    ).value = `Nguyễn Văn Khoa`
+    // Apply font style
+    worksheet.getCell(`F${endNumRow + 10}:G${endNumRow + 10}`).font = {
+        name: 'Times New Roman',
+        size: 14,
+    }
+    worksheet.getCell(`F${endNumRow + 10}:G${endNumRow + 10}`).alignment = {
         horizontal: 'center',
         vertical: 'middle',
     }
@@ -700,7 +712,6 @@ export const exportPurchaseRequestToExcel = async (pr, data) => {
 
 export const exportPurchaseOrderToExcel = async (po, data) => {
     try {
-        console.log(po, data)
         const workbook = new ExcelJS.Workbook()
         const worksheet = workbook.addWorksheet('DN')
 
@@ -743,7 +754,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Place image at A1
         worksheet.addImage(imageId, {
             tl: { col: 0, row: 0 }, // top-left corner at column A (0), row 1 (0)
-            ext: { width: 110, height: 98 }, // size in pixels
+            ext: { width: 186, height: 165 }, // size in pixels
         })
 
         worksheet.mergeCells('C2:M2')
@@ -753,7 +764,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('C2').font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell('C2').alignment = {
             horizontal: 'center',
@@ -765,7 +776,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('C3').font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell('C3').alignment = {
             horizontal: 'center',
@@ -776,7 +787,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('G5').font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell('G5').alignment = {
             vertical: 'middle',
@@ -790,7 +801,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('G6').font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell('G6').alignment = {
             vertical: 'middle',
@@ -802,7 +813,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('A7').font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell('A7').alignment = {
             vertical: 'middle',
@@ -842,7 +853,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('A8').font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell('A8').alignment = {
             vertical: 'middle',
@@ -855,13 +866,13 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
                     font: {
                         bold: true,
                         name: 'Times New Roman',
-                        size: 14,
+                        size: 15,
                         underline: true,
                     },
                 },
                 {
                     text: po?.customer_id?.name,
-                    font: { name: 'Times New Roman', size: 14 },
+                    font: { name: 'Times New Roman', size: 15 },
                 },
             ],
         }
@@ -876,13 +887,13 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
                     font: {
                         bold: true,
                         name: 'Times New Roman',
-                        size: 14,
+                        size: 15,
                         underline: true,
                     },
                 },
                 {
                     text: po?.partner_id?.name,
-                    font: { name: 'Times New Roman', size: 14 },
+                    font: { name: 'Times New Roman', size: 15 },
                 },
             ],
         }
@@ -897,7 +908,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('A10').font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell('A10').alignment = {
             vertical: 'middle',
@@ -909,7 +920,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('H10').font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell('H10').alignment = {
             vertical: 'middle',
@@ -921,7 +932,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('A11').font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell('A11').alignment = {
             vertical: 'middle',
@@ -933,7 +944,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('H11').font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell('H11').alignment = {
             vertical: 'middle',
@@ -945,7 +956,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('A12').font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell('A12').alignment = {
             vertical: 'middle',
@@ -957,7 +968,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('H12').font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell('H12').alignment = {
             vertical: 'middle',
@@ -969,7 +980,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('A13').font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell('A13').alignment = {
             vertical: 'middle',
@@ -981,7 +992,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('H13').font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell('H13').alignment = {
             vertical: 'middle',
@@ -991,7 +1002,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('A14').font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell('A14').alignment = {
             vertical: 'middle',
@@ -1001,7 +1012,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('H14').font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell('H14').alignment = {
             vertical: 'middle',
@@ -1013,7 +1024,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('A15').font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell('A15').alignment = {
             vertical: 'middle',
@@ -1025,7 +1036,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('H15').font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell('H15').alignment = {
             vertical: 'middle',
@@ -1037,19 +1048,19 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
                     text: 'Tại: ',
                     font: {
                         name: 'Times New Roman',
-                        size: 16,
+                        size: 18,
                     },
                 },
                 {
                     text: po?.customer_id?.accountBank || '',
-                    font: { name: 'Times New Roman', size: 14 },
+                    font: { name: 'Times New Roman', size: 16 },
                 },
             ],
         }
         // Apply font style
         worksheet.getCell('A16').font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell('A16').alignment = {
             vertical: 'middle',
@@ -1061,19 +1072,19 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
                     text: 'Tại: ',
                     font: {
                         name: 'Times New Roman',
-                        size: 16,
+                        size: 18,
                     },
                 },
                 {
                     text: po?.partner_id?.accountBank || '',
-                    font: { name: 'Times New Roman', size: 14 },
+                    font: { name: 'Times New Roman', size: 16 },
                 },
             ],
         }
         // Apply font style
         worksheet.getCell('H16').font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 17,
         }
         worksheet.getCell('H16').alignment = {
             vertical: 'middle',
@@ -1162,7 +1173,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('A18').font = {
             name: 'Times New Roman',
-            size: 15,
+            size: 18,
         }
         worksheet.getCell('A18').alignment = {
             vertical: 'middle',
@@ -1175,7 +1186,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('B18').font = {
             name: 'Times New Roman',
-            size: 15,
+            size: 18,
         }
         worksheet.getCell('B18').alignment = {
             vertical: 'middle',
@@ -1188,7 +1199,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('E18').font = {
             name: 'Times New Roman',
-            size: 15,
+            size: 18,
         }
         worksheet.getCell('E18').alignment = {
             vertical: 'middle',
@@ -1201,7 +1212,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('G18').font = {
             name: 'Times New Roman',
-            size: 15,
+            size: 18,
         }
         worksheet.getCell('G18').alignment = {
             vertical: 'middle',
@@ -1213,7 +1224,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('J18').font = {
             name: 'Times New Roman',
-            size: 15,
+            size: 18,
         }
         worksheet.getCell('J18').alignment = {
             vertical: 'middle',
@@ -1225,7 +1236,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('K18').font = {
             name: 'Times New Roman',
-            size: 15,
+            size: 18,
         }
         worksheet.getCell('K18').alignment = {
             vertical: 'middle',
@@ -1237,7 +1248,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('L18').font = {
             name: 'Times New Roman',
-            size: 15,
+            size: 16,
         }
         worksheet.getCell('L18').alignment = {
             vertical: 'middle',
@@ -1249,7 +1260,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell('M18').font = {
             name: 'Times New Roman',
-            size: 15,
+            size: 18,
         }
         worksheet.getCell('M18').alignment = {
             vertical: 'middle',
@@ -1257,9 +1268,9 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             wrapText: true,
         }
 
-        worksheet.getRow(18).height = 50
+        worksheet.getRow(18).height = 60
         worksheet.getColumn(1).width = 5
-        worksheet.getColumn(2).width = 20
+        worksheet.getColumn(2).width = 26
         worksheet.getColumn(5).width = 5
         worksheet.getColumn(8).width = 5
         worksheet.getColumn(9).width = 5
@@ -1316,9 +1327,9 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
                 // Apply font style
                 worksheet.getCell(`${listOfColumn[j]}${rowNum}`).font = {
                     name: 'Times New Roman',
-                    size: ['B', 'G', 'J'].includes(listOfColumn[j]) ? 14 : 15,
+                    size: ['B', 'G'].includes(listOfColumn[j]) ? 17 : 18,
                 }
-                worksheet.getRow(rowNum).height = 50
+                worksheet.getRow(rowNum).height = 75
                 worksheet.getCell(`${listOfColumn[j]}${rowNum}`).alignment = {
                     vertical: 'middle',
                     wrapText: true,
@@ -1338,7 +1349,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell(`A${endNumRow + 1}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`A${endNumRow + 1}`).alignment = {
             vertical: 'middle',
@@ -1350,7 +1361,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell(`A${endNumRow + 2}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`A${endNumRow + 2}`).alignment = {
             vertical: 'middle',
@@ -1362,7 +1373,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell(`A${endNumRow + 3}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`A${endNumRow + 3}`).alignment = {
             vertical: 'middle',
@@ -1374,37 +1385,40 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell(`M${endNumRow + 1}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`M${endNumRow + 1}`).alignment = {
             vertical: 'middle',
             wrapText: true,
         }
         worksheet.getCell(`M${endNumRow + 1}`).numFmt = '#,##0'
+        worksheet.getRow(endNumRow + 1).height = 40
 
         worksheet.getCell(`M${endNumRow + 2}`).value = po.tax
         // Apply font style
         worksheet.getCell(`M${endNumRow + 2}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`M${endNumRow + 2}`).alignment = {
             vertical: 'middle',
             wrapText: true,
         }
         worksheet.getCell(`M${endNumRow + 2}`).numFmt = '#,##0'
+        worksheet.getRow(endNumRow + 2).height = 40
 
         worksheet.getCell(`M${endNumRow + 3}`).value = po.total_amount
         // Apply font style
         worksheet.getCell(`M${endNumRow + 3}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`M${endNumRow + 3}`).alignment = {
             vertical: 'middle',
             wrapText: true,
         }
         worksheet.getCell(`M${endNumRow + 3}`).numFmt = '#,##0'
+        worksheet.getRow(endNumRow + 3).height = 40
 
         for (let row = 18; row <= endNumRow + 3; row++) {
             for (let col = 1; col <= 13; col++) {
@@ -1422,7 +1436,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell(`A${endNumRow + 4}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`A${endNumRow + 4}`).alignment = {
             vertical: 'middle',
@@ -1434,7 +1448,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell(`B${endNumRow + 4}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`B${endNumRow + 4}`).alignment = {
             vertical: 'middle',
@@ -1448,7 +1462,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell(`C${endNumRow + 4}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`C${endNumRow + 4}`).alignment = {
             vertical: 'middle',
@@ -1460,7 +1474,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell(`D${endNumRow + 4}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`D${endNumRow + 4}`).alignment = {
             vertical: 'middle',
@@ -1470,7 +1484,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell(`A${endNumRow + 5}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`A${endNumRow + 5}`).alignment = {
             vertical: 'middle',
@@ -1484,7 +1498,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell(`B${endNumRow + 5}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`B${endNumRow + 5}`).alignment = {
             vertical: 'middle',
@@ -1494,7 +1508,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell(`A${endNumRow + 6}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`A${endNumRow + 6}`).alignment = {
             vertical: 'middle',
@@ -1508,7 +1522,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell(`B${endNumRow + 6}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`B${endNumRow + 6}`).alignment = {
             vertical: 'middle',
@@ -1518,7 +1532,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell(`A${endNumRow + 7}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`A${endNumRow + 7}`).alignment = {
             vertical: 'middle',
@@ -1532,7 +1546,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell(`B${endNumRow + 7}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`B${endNumRow + 7}`).alignment = {
             vertical: 'middle',
@@ -1542,7 +1556,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell(`A${endNumRow + 8}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`A${endNumRow + 8}`).alignment = {
             vertical: 'top',
@@ -1556,20 +1570,20 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell(`B${endNumRow + 8}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`B${endNumRow + 8}`).alignment = {
             vertical: 'top',
             wrapText: true,
         }
 
-        worksheet.getRow(endNumRow + 8).height = 175
+        worksheet.getRow(endNumRow + 8).height = 190
 
         worksheet.getCell(`A${endNumRow + 9}`).value = '6.'
         // Apply font style
         worksheet.getCell(`A${endNumRow + 9}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`A${endNumRow + 9}`).alignment = {
             wrapText: true,
@@ -1583,7 +1597,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell(`B${endNumRow + 9}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`B${endNumRow + 9}`).alignment = {
             wrapText: true,
@@ -1596,7 +1610,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell(`A${endNumRow + 10}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`A${endNumRow + 10}`).alignment = {
             wrapText: true,
@@ -1610,7 +1624,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell(`B${endNumRow + 10}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`B${endNumRow + 10}`).alignment = {
             wrapText: true,
@@ -1623,7 +1637,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell(`A${endNumRow + 11}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`A${endNumRow + 11}`).alignment = {
             wrapText: true,
@@ -1636,7 +1650,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell(`B${endNumRow + 11}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`B${endNumRow + 11}`).alignment = {
             wrapText: true,
@@ -1647,7 +1661,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell(`B${endNumRow + 12}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`B${endNumRow + 12}`).alignment = {
             wrapText: true,
@@ -1660,7 +1674,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         // Apply font style
         worksheet.getCell(`I${endNumRow + 12}`).font = {
             name: 'Times New Roman',
-            size: 16,
+            size: 18,
         }
         worksheet.getCell(`I${endNumRow + 12}`).alignment = {
             wrapText: true,
