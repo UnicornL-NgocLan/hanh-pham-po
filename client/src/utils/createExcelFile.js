@@ -595,9 +595,9 @@ export const exportPurchaseRequestToExcel = async (pr, data) => {
         horizontal: 'center',
     }
 
-    worksheet.getCell(`M${endNumRow + 1}`).value = moment(pr.date)
-        .add(7, 'hours')
-        .format('DD/MM/YYYY')
+    worksheet.getCell(`M${endNumRow + 1}`).value = moment(pr.date).format(
+        'DD/MM/YYYY'
+    )
     // Apply font style
     worksheet.getCell(`M${endNumRow + 1}`).font = {
         name: 'Times New Roman',

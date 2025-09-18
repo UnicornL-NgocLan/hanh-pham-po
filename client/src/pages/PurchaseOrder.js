@@ -1180,6 +1180,13 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                 </Space.Compact>
                 <Space.Compact style={{ display: 'flex' }}>
                     <Form.Item
+                        name="quotation_date"
+                        style={{ flex: 1 }}
+                        label="Ngày báo giá mặc định"
+                    >
+                        <DatePicker style={{ width: '100%' }} />
+                    </Form.Item>
+                    <Form.Item
                         name="date"
                         style={{ flex: 1 }}
                         label="Ngày đề nghị đặt hàng"
@@ -1524,6 +1531,12 @@ const MyPurchaseRequestLineDrawer = ({
             const outerContract = outerForm?.getFieldValue('contract_id')
             if (outerContract) {
                 form.setFieldValue('contract_id', outerContract)
+            }
+
+            const outerQuotationDate =
+                outerForm?.getFieldValue('quotation_date')
+            if (outerQuotationDate) {
+                form.setFieldValue('quotation_date', outerQuotationDate)
             }
         }
     }, [])
