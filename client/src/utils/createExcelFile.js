@@ -938,9 +938,9 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell('H11').value = `${po?.customer_id?.district || ''}, ${
-            po?.customer_id?.city || ''
-        }, ${po?.customer_id?.country || ''}`
+        worksheet.getCell('H11').value = `${po?.partner_id?.district || ''}, ${
+            po?.partner_id?.city || ''
+        }, ${po?.partner_id?.country || ''}`
         // Apply font style
         worksheet.getCell('H11').font = {
             name: 'Times New Roman',
