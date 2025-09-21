@@ -502,8 +502,14 @@ const MyDrawer = ({ open, onClose, getPos }) => {
     const searchInput = useRef(null)
     const [showPurchaseOrderLineDrawer, setShowPurchaseOrderLineDrawer] =
         useState(false)
-    const { partners, po_lines, setPoLineState, contracts, setPartnerState } =
-        useZustand()
+    const {
+        partners,
+        po_lines,
+        setPoLineState,
+        contracts,
+        setPartnerState,
+        setContractState,
+    } = useZustand()
     const [openMyPartnerDrawer, setOpenMyPartnerDrawer] = useState(false)
     const [filteredContracts, setFilteredContracts] = useState(contracts)
     const [openMyContractDrawer, setOpenMyContractDrawer] = useState(false)
@@ -526,6 +532,25 @@ const MyDrawer = ({ open, onClose, getPos }) => {
         try {
             const { data } = await axios.get('/api/get-partners')
             setPartnerState(data.data)
+        } catch (error) {
+            console.log(error)
+            alert(error?.response?.data?.msg)
+        }
+    }
+
+    const getContracts = async () => {
+        try {
+            const { data } = await axios.get('/api/get-contracts')
+            setContractState(data.data)
+
+            if (form.getFieldValue('buyer_id')) {
+                const filtered = data.data.filter(
+                    (i) => i.partner_id?._id === form.getFieldValue('buyer_id')
+                )
+                setFilteredContracts(filtered)
+            } else {
+                setFilteredContracts(data.data)
+            }
         } catch (error) {
             console.log(error)
             alert(error?.response?.data?.msg)
@@ -1286,11 +1311,7 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                     }
                     return {
                         ...i,
-                        product: `${
-                            i?.product_id?.code
-                                ? `[${i?.product_id?.code}] `
-                                : ''
-                        }${i?.product_id?.name}`,
+                        product: i?.product_id?.name,
                         uom: i?.uom_id?.name,
                         buyer: i?.buyer_id?.name,
                         contract: contractString,
@@ -1304,6 +1325,14 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                     open={openMyPartnerDrawer}
                     onClose={() => setOpenMyPartnerDrawer(false)}
                     getPartners={getPartners}
+                />
+            )}
+
+            {openMyContractDrawer && (
+                <MyContractDrawer
+                    open={openMyContractDrawer}
+                    onClose={() => setOpenMyContractDrawer(false)}
+                    getContracts={getContracts}
                 />
             )}
         </Drawer>
@@ -1635,9 +1664,7 @@ const MyPurchaseRequestLineDrawer = ({
                             options={products.map((i) => {
                                 return {
                                     value: i._id,
-                                    label: `${i.code ? `[${i.code}] ` : ''}${
-                                        i.name
-                                    }`,
+                                    label: i.name,
                                 }
                             })}
                         />
