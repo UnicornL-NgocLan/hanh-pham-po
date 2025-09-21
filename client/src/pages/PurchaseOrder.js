@@ -459,6 +459,7 @@ const PurchaseOrder = () => {
                 rowSelection={rowSelection}
                 size="small"
                 rowKey={(record) => record._id}
+                pagination={{ defaultPageSize: 15, showSizeChanger: true }}
                 scroll={{ x: 'max-content' }}
                 dataSource={data.map((i) => {
                     let contractString = ''
