@@ -184,7 +184,6 @@ const PurchaseOrder = () => {
                     'Khách hàng': khach_hang,
                     'Số đề nghị': so_de_nghi,
                     'Căn cứ': can_cu,
-                    'Đơn giá': don_gia,
                 })
             }
             await exportSummaryExcelFile(processedData)
