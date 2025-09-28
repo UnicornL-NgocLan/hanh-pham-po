@@ -20,6 +20,8 @@ import Highlighter from 'react-highlight-words'
 import { MdModeEdit } from 'react-icons/md'
 import { DeleteFilled, SearchOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
+import customParseFormat from 'dayjs/plugin/customParseFormat'
+import isBetween from 'dayjs/plugin/isBetween'
 import { IoPrint } from 'react-icons/io5'
 import { MdEdit } from 'react-icons/md'
 import {
@@ -28,6 +30,9 @@ import {
 } from '../utils/createExcelFile.js'
 import { exportSummaryExcelFile } from '../utils/exportSummaryExcelFile.js'
 import { FaCirclePlus } from 'react-icons/fa6'
+const { RangePicker } = DatePicker
+dayjs.extend(customParseFormat)
+dayjs.extend(isBetween)
 
 const PurchaseOrder = () => {
     const [showDrawer, setShowDrawer] = useState(false)
@@ -39,6 +44,8 @@ const PurchaseOrder = () => {
     const searchInput = useRef(null)
     const [printing, setPrinting] = useState(false)
     const [selectedRowKeys, setSelectedRowKeys] = useState([])
+    const [filteredData, setFilteredData] = useState([])
+    const [isFilteredDate, setIsFilteredDate] = useState(false)
 
     const getPos = async (id = false) => {
         try {
@@ -300,6 +307,28 @@ const PurchaseOrder = () => {
             ),
     })
 
+    const handleDateFilter = (dates, type) => {
+        if (!dates || dates.length === 0) {
+            setFilteredData(data)
+            setIsFilteredDate(false)
+        } else {
+            const [start, end] = dates
+            const filtered = data.filter((item) => {
+                const startDay = dayjs(start, 'DD/MM/YYYY')
+                const endDay = dayjs(end, 'DD/MM/YYYY')
+                const dueDateFormat =
+                    type === 'delivered'
+                        ? dayjs(item.date_deliveried)
+                        : dayjs(item.date_ordered)
+                return dueDateFormat.isBetween(startDay, endDay, 'day', '[]')
+            })
+            setFilteredData(filtered)
+            setIsFilteredDate(true)
+        }
+    }
+
+    const getFilteredData = () => (isFilteredDate ? filteredData : data)
+
     const columns = [
         {
             title: 'Mã ĐN',
@@ -334,23 +363,46 @@ const PurchaseOrder = () => {
             dataIndex: 'date_ordered',
             key: 'date_ordered',
             align: 'right',
-            sorter: (a, b) => moment(a.date_ordered) - moment(b.date_ordered),
-            render: (value) => (
-                <span>{moment(value).format('DD/MM/YYYY')}</span>
+            sorter: (a, b) => {
+                return (
+                    dayjs(a.date_ordered).valueOf() -
+                    dayjs(b.date_ordered).valueOf()
+                )
+            },
+            filterDropdown: () => (
+                <div style={{ padding: 8 }}>
+                    <RangePicker
+                        onChange={(dates) => handleDateFilter(dates, 'ordered')}
+                    />
+                </div>
             ),
+            onFilter: () => {},
+            render: (value) => <span>{dayjs(value).format('DD/MM/YYYY')}</span>,
         },
         {
             title: 'Ngày giao hàng',
             dataIndex: 'date_deliveried',
             key: 'date_deliveried',
             align: 'right',
-            sorter: (a, b) =>
-                moment(a.date_deliveried) - moment(b.date_deliveried),
-            render: (value) => {
-                return value ? (
-                    <span>{moment(value).format('DD/MM/YYYY')}</span>
-                ) : undefined
+            sorter: (a, b) => {
+                return (
+                    dayjs(a.date_deliveried).valueOf() -
+                    dayjs(b.date_deliveried).valueOf()
+                )
             },
+            filterDropdown: () => (
+                <div style={{ padding: 8 }}>
+                    <RangePicker
+                        onChange={(dates) =>
+                            handleDateFilter(dates, 'delivered')
+                        }
+                    />
+                </div>
+            ),
+            onFilter: () => {},
+            render: (value) => (
+                <span>{moment(value).format('DD/MM/YYYY')}</span>
+            ),
         },
         {
             title: 'Nhà cung cấp',
@@ -463,7 +515,7 @@ const PurchaseOrder = () => {
                 rowKey={(record) => record._id}
                 pagination={{ defaultPageSize: 15, showSizeChanger: true }}
                 scroll={{ x: 'max-content' }}
-                dataSource={data.map((i) => {
+                dataSource={getFilteredData().map((i) => {
                     let contractString = ''
                     const contractList = i.contract_id
                     for (let k = 0; k < contractList.length; k++) {
