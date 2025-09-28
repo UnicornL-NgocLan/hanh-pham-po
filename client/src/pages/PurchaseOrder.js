@@ -132,6 +132,7 @@ const PurchaseOrder = () => {
                     finalList[i]?.po?.partner_id?.short_name.trim()
                 const so_don_hang = finalList[i]?.po?.name
                 const product_name = finalList[i]?.product_id?.name
+                const don_gia = finalList[i]?.price_unit
                 const ngay_don_hang = moment(finalList[i]?.po?.date_ordered)
                     .add(7, 'hours')
                     .format('DD/MM/YYYY')
@@ -176,6 +177,7 @@ const PurchaseOrder = () => {
                     'Khách hàng': khach_hang,
                     'Số đề nghị': so_de_nghi,
                     'Căn cứ': can_cu,
+                    'Đơn giá': don_gia,
                 })
             }
             await exportSummaryExcelFile(processedData)
