@@ -24,6 +24,7 @@ import customParseFormat from 'dayjs/plugin/customParseFormat'
 import isBetween from 'dayjs/plugin/isBetween'
 import { IoPrint } from 'react-icons/io5'
 import { MdEdit } from 'react-icons/md'
+import { IoDuplicate } from 'react-icons/io5'
 import {
     exportPurchaseOrderToExcel,
     exportPurchaseRequestToExcel,
@@ -184,6 +185,7 @@ const PurchaseOrder = () => {
                     'Khách hàng': khach_hang,
                     'Số đề nghị': so_de_nghi,
                     'Căn cứ': can_cu,
+                    'Đơn giá': don_gia,
                 })
             }
             await exportSummaryExcelFile(processedData)
@@ -685,6 +687,90 @@ const MyDrawer = ({ open, onClose, getPos }) => {
         }
     }
 
+    const handleDuplicate = async () => {
+        try {
+            if (!open?._id)
+                return alert('Chỉ có thể nhân bản đơn mua hàng đã lưu')
+
+            if (!window.confirm('Bạn có chắc muốn nhân bản đơn mua hàng này?'))
+                return
+
+            const {
+                name,
+                replacedForContract,
+                pr_name,
+                partner_id,
+                date,
+                customer_id,
+                date_deliveried,
+                delivered_to,
+                date_ordered,
+                active,
+                contract_id,
+                buyer_id,
+            } = form.getFieldsValue()
+
+            if (
+                (!name && open?._id) ||
+                (!pr_name && open?._id) ||
+                !replacedForContract ||
+                !partner_id ||
+                !date_ordered ||
+                !date ||
+                !customer_id
+            )
+                return alert('Vui lòng nhập đầy đủ thông tin bắt buộc')
+            setLoading(true)
+            const { data } = await axios.post('/api/create-po', {
+                name,
+                replacedForContract,
+                pr_name,
+                partner_id,
+                customer_id,
+                date,
+                date_deliveried,
+                delivered_to,
+                date_ordered,
+                contract_id,
+                buyer_id,
+            })
+            let po_id_created = data?.data?._id
+            if (po_id_created) {
+                const lines = po_lines.map((item) =>
+                    axios.post('/api/create-po-line', {
+                        order_id: po_id_created,
+                        product_id: item.product_id,
+                        uom_id: item.uom_id,
+                        quy_cach: item.quy_cach,
+                        buyer_id: item.buyer_id,
+                        contract_id: item.contract_id,
+                        contract_quantity: item.contract_quantity,
+                        need_quantity: item.need_quantity,
+                        kho_tong: item.kho_tong,
+                        quotation_date: item.quotation_date,
+                        loss_rate: item.loss_rate,
+                        note: item.note,
+                        standard: item.standard,
+                        quantity: item.quantity,
+                        price_unit: item.price_unit,
+                        sub_total: item.sub_total,
+                    })
+                )
+                await Promise.all(lines)
+            }
+            const result = await getPos(po_id_created)
+            if (!result) {
+                onClose()
+            }
+            alert('Đã nhân bản thành công!')
+        } catch (error) {
+            console.log(error)
+            alert(error?.response?.data?.msg)
+        } finally {
+            setLoading(false)
+        }
+    }
+
     useEffect(() => {
         handleGetRespectiveLines()
     }, [])
@@ -990,6 +1076,16 @@ const MyDrawer = ({ open, onClose, getPos }) => {
             width={'100%'}
             extra={
                 <Space>
+                    {open?._id && (
+                        <Button
+                            icon={<IoDuplicate />}
+                            onClick={handleDuplicate}
+                            loading={loading}
+                            disabled={loading}
+                        >
+                            Nhân bản
+                        </Button>
+                    )}
                     <Button
                         onClick={onClose}
                         loading={loading}
