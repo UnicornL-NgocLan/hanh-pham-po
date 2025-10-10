@@ -95,7 +95,7 @@ export const exportPurchaseRequestToExcel = async (pr, data) => {
     }
 
     worksheet.mergeCells('A6:N6')
-    worksheet.getCell('A6').value = `Số đề nghị ${pr.name}`
+    worksheet.getCell('A6').value = `Số đề nghị ${pr.pr_name}`
     // Apply font style
     worksheet.getCell('A6').font = {
         name: 'Times New Roman',
