@@ -107,9 +107,8 @@ export const exportPurchaseRequestToExcel = async (pr, data) => {
     }
 
     worksheet.mergeCells('B7:N7')
-    worksheet.getCell(
-        'B7'
-    ).value = `'- Căn cứ vào Quy trình Triển khai đặt và in ấn bao bì (MS: QTTKIABB)`
+    worksheet.getCell('B7').value =
+        `'- Căn cứ vào Quy trình Triển khai đặt và in ấn bao bì (MS: QTTKIABB)`
     // Apply font style
     worksheet.getCell('B7').font = {
         name: 'Times New Roman',
@@ -628,9 +627,8 @@ export const exportPurchaseRequestToExcel = async (pr, data) => {
     }
 
     worksheet.mergeCells(`L${endNumRow + 2}:M${endNumRow + 2}`)
-    worksheet.getCell(
-        `L${endNumRow + 2}:M${endNumRow + 2}`
-    ).value = `Người đề nghị`
+    worksheet.getCell(`L${endNumRow + 2}:M${endNumRow + 2}`).value =
+        `Người đề nghị`
     // Apply font style
     worksheet.getCell(`L${endNumRow + 2}:M${endNumRow + 2}`).font = {
         name: 'Times New Roman',
@@ -642,9 +640,8 @@ export const exportPurchaseRequestToExcel = async (pr, data) => {
     }
 
     worksheet.mergeCells(`F${endNumRow + 10}:G${endNumRow + 10}`)
-    worksheet.getCell(
-        `F${endNumRow + 10}:G${endNumRow + 10}`
-    ).value = `Nguyễn Văn Khoa`
+    worksheet.getCell(`F${endNumRow + 10}:G${endNumRow + 10}`).value =
+        `Nguyễn Văn Khoa`
     // Apply font style
     worksheet.getCell(`F${endNumRow + 10}:G${endNumRow + 10}`).font = {
         name: 'Times New Roman',
@@ -656,9 +653,8 @@ export const exportPurchaseRequestToExcel = async (pr, data) => {
     }
 
     worksheet.mergeCells(`L${endNumRow + 10}:M${endNumRow + 10}`)
-    worksheet.getCell(
-        `L${endNumRow + 10}:M${endNumRow + 10}`
-    ).value = `Phạm Thị Xuân Hạnh`
+    worksheet.getCell(`L${endNumRow + 10}:M${endNumRow + 10}`).value =
+        `Phạm Thị Xuân Hạnh`
     // Apply font style
     worksheet.getCell(`L${endNumRow + 10}:M${endNumRow + 10}`).font = {
         name: 'Times New Roman',
@@ -669,9 +665,8 @@ export const exportPurchaseRequestToExcel = async (pr, data) => {
         vertical: 'middle',
     }
 
-    worksheet.getCell(
-        `B${endNumRow + 12}`
-    ).value = `(2), (3), (4), (5), (6): Thông tin được lấy từ hợp đồng, file thiết kế bao bì`
+    worksheet.getCell(`B${endNumRow + 12}`).value =
+        `(2), (3), (4), (5), (6): Thông tin được lấy từ hợp đồng, file thiết kế bao bì`
     // Apply font style
     worksheet.getCell(`B${endNumRow + 12}`).font = {
         name: 'Times New Roman',
@@ -681,9 +676,8 @@ export const exportPurchaseRequestToExcel = async (pr, data) => {
         vertical: 'middle',
     }
 
-    worksheet.getCell(
-        `B${endNumRow + 13}`
-    ).value = `(7), (8), (9): Số liệu tồn kho do các kho bao bì (Kho Bao bì Tổng, Kho Bao Bì Tân Long, Kho Bao bì An Phú) cung cấp`
+    worksheet.getCell(`B${endNumRow + 13}`).value =
+        `(7), (8), (9): Số liệu tồn kho do các kho bao bì (Kho Bao bì Tổng, Kho Bao Bì Tân Long, Kho Bao bì An Phú) cung cấp`
     // Apply font style
     worksheet.getCell(`B${endNumRow + 13}`).font = {
         name: 'Times New Roman',
@@ -693,9 +687,8 @@ export const exportPurchaseRequestToExcel = async (pr, data) => {
         vertical: 'middle',
     }
 
-    worksheet.getCell(
-        `B${endNumRow + 14}`
-    ).value = `(12): căn cứ vào quy định về tỷ lệ đặt hao hụt trong Quy trình Triển khai đặt và in ấn bao bì (mục 3.1.2 trang 4)`
+    worksheet.getCell(`B${endNumRow + 14}`).value =
+        `(12): căn cứ vào quy định về tỷ lệ đặt hao hụt trong Quy trình Triển khai đặt và in ấn bao bì (mục 3.1.2 trang 4)`
     // Apply font style
     worksheet.getCell(`B${endNumRow + 14}`).font = {
         name: 'Times New Roman',
@@ -758,9 +751,8 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         })
 
         worksheet.mergeCells('C2:M2')
-        worksheet.getCell(
-            'C2'
-        ).value = `(Thay cho phụ kiện của Hợp đồng nguyên tắc số: ${po?.replacedForContract})`
+        worksheet.getCell('C2').value =
+            `(Thay cho phụ kiện của Hợp đồng nguyên tắc số: ${po?.replacedForContract})`
         // Apply font style
         worksheet.getCell('C2').font = {
             name: 'Times New Roman',
@@ -807,9 +799,8 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell(
-            'A7'
-        ).value = `Căn cứ vào bảng đề nghị mua vật tư: Số đề nghị ${po?.pr_name} của Phòng Kinh Doanh`
+        worksheet.getCell('A7').value =
+            `Căn cứ vào bảng đề nghị mua vật tư: Số đề nghị ${po?.pr_name} của Phòng Kinh Doanh`
         // Apply font style
         worksheet.getCell('A7').font = {
             name: 'Times New Roman',
@@ -847,9 +838,8 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
                     ', '
             }
         }
-        worksheet.getCell(
-            'A8'
-        ).value = `Căn cứ vào bảng báo giá ngày ${dateString} của ${po?.partner_id?.name}`
+        worksheet.getCell('A8').value =
+            `Căn cứ vào bảng báo giá ngày ${dateString} của ${po?.partner_id?.name}`
         // Apply font style
         worksheet.getCell('A8').font = {
             name: 'Times New Roman',
@@ -1343,9 +1333,8 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         let endNumRow = 18 + data.length
 
         worksheet.mergeCells(`A${endNumRow + 1}:L${endNumRow + 1}`)
-        worksheet.getCell(
-            `A${endNumRow + 1}`
-        ).value = `Thành tiền (Chưa bao gồm thuế GTGT)`
+        worksheet.getCell(`A${endNumRow + 1}`).value =
+            `Thành tiền (Chưa bao gồm thuế GTGT)`
         // Apply font style
         worksheet.getCell(`A${endNumRow + 1}`).font = {
             name: 'Times New Roman',
@@ -1468,9 +1457,8 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell(
-            `D${endNumRow + 4}`
-        ).value = `Địa điểm giao nhận: Kho bên mua`
+        worksheet.getCell(`D${endNumRow + 4}`).value =
+            `Địa điểm giao nhận: Kho bên mua`
         // Apply font style
         worksheet.getCell(`D${endNumRow + 4}`).font = {
             name: 'Times New Roman',
@@ -1492,9 +1480,8 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             wrapText: true,
         }
 
-        worksheet.getCell(
-            `B${endNumRow + 5}`
-        ).value = `Chi phí bốc xếp: Mỗi bên chịu một đầu`
+        worksheet.getCell(`B${endNumRow + 5}`).value =
+            `Chi phí bốc xếp: Mỗi bên chịu một đầu`
         // Apply font style
         worksheet.getCell(`B${endNumRow + 5}`).font = {
             name: 'Times New Roman',
@@ -1516,9 +1503,8 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             wrapText: true,
         }
 
-        worksheet.getCell(
-            `B${endNumRow + 6}`
-        ).value = `Chi phí vận chuyển: Bên bán chịu`
+        worksheet.getCell(`B${endNumRow + 6}`).value =
+            `Chi phí vận chuyển: Bên bán chịu`
         // Apply font style
         worksheet.getCell(`B${endNumRow + 6}`).font = {
             name: 'Times New Roman',
@@ -1540,9 +1526,8 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             wrapText: true,
         }
 
-        worksheet.getCell(
-            `B${endNumRow + 7}`
-        ).value = `Hình thức và thời hạn thanh toán: Căn cứ theo Hợp Đồng Nguyên Tắc đã ký`
+        worksheet.getCell(`B${endNumRow + 7}`).value =
+            `Hình thức và thời hạn thanh toán: Căn cứ theo Hợp Đồng Nguyên Tắc đã ký`
         // Apply font style
         worksheet.getCell(`B${endNumRow + 7}`).font = {
             name: 'Times New Roman',
@@ -1657,7 +1642,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         }
 
         worksheet.mergeCells(`B${endNumRow + 12}:E${endNumRow + 12}`)
-        worksheet.getCell(`B${endNumRow + 12}`).value = 'ĐẠI DIỆN BÊN BÁN'
+        worksheet.getCell(`B${endNumRow + 12}`).value = 'ĐẠI DIỆN BÊN MUA'
         // Apply font style
         worksheet.getCell(`B${endNumRow + 12}`).font = {
             name: 'Times New Roman',
@@ -1670,7 +1655,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         }
 
         worksheet.mergeCells(`I${endNumRow + 12}:M${endNumRow + 12}`)
-        worksheet.getCell(`I${endNumRow + 12}`).value = 'ĐẠI DIỆN BÊN MUA'
+        worksheet.getCell(`I${endNumRow + 12}`).value = 'ĐẠI DIỆN BÊN BÁN'
         // Apply font style
         worksheet.getCell(`I${endNumRow + 12}`).font = {
             name: 'Times New Roman',
