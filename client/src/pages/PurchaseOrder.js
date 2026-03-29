@@ -1537,99 +1537,48 @@ const MyPurchaseRequestLineDrawer = ({
             } = form.getFieldsValue()
             if (!product_id)
                 return alert('Vui lòng nhập đầy đủ thông tin bắt buộc')
-            const existingProductLine = po_lines.find(
-                (i) => i.product_id?._id === product_id
-            )
-            let acceptToMerge = false
-            if (existingProductLine && !open?._id) {
-                const theoreticalNeedQty =
-                    existingProductLine.contract_quantity +
-                    contract_quantity -
-                    existingProductLine.kho_tong -
-                    kho_tong
-                const percentage =
-                    (existingProductLine.quantity +
-                        quantity -
-                        theoreticalNeedQty) /
-                    (existingProductLine.quantity + quantity)
-                acceptToMerge = window.confirm(
-                    'Sản phẩm đã tồn tại trong đơn hàng, bạn có muốn gộp vào dòng hiện có không? Hệ thống sẽ gộp các thông tin như sau:\n' +
-                        `Số lượng hợp đồng: ${existingProductLine.contract_quantity} -> ${existingProductLine.contract_quantity + contract_quantity}\n` +
-                        `Kho tổng: ${existingProductLine.kho_tong} -> ${existingProductLine.kho_tong + kho_tong}\n` +
-                        `Số lượng: ${existingProductLine.quantity} -> ${existingProductLine.quantity + quantity}\n` +
-                        `Tỷ lệ hao hụt: ${existingProductLine.loss_rate}% -> ${Math.round(percentage * 100)}%\n`
-                )
-            }
 
             setLoading(true)
 
-            if (existingProductLine && acceptToMerge) {
-                const theoreticalNeedQty =
-                    existingProductLine.contract_quantity +
-                    contract_quantity -
-                    existingProductLine.kho_tong -
-                    kho_tong
-                const percentage =
-                    (existingProductLine.quantity +
-                        quantity -
-                        theoreticalNeedQty) /
-                    (existingProductLine.quantity + quantity)
-                await axios.patch(
-                    `/api/update-po-line/${existingProductLine._id}`,
-                    {
-                        contract_quantity:
-                            existingProductLine.contract_quantity +
-                            contract_quantity,
-                        need_quantity:
-                            existingProductLine.need_quantity + need_quantity,
-                        kho_tong: existingProductLine.kho_tong + kho_tong,
-                        quantity: existingProductLine.quantity + quantity,
-                        loss_rate: Math.round(percentage * 100),
-                        sub_total: existingProductLine.sub_total + sub_total,
-                    }
-                )
+            if (open?._id) {
+                await axios.patch(`/api/update-po-line/${open._id}`, {
+                    order_id,
+                    product_id,
+                    uom_id,
+                    quy_cach,
+                    contract_quantity,
+                    need_quantity,
+                    kho_tong,
+                    quotation_date,
+                    loss_rate,
+                    buyer_id,
+                    contract_id,
+                    note,
+                    standard,
+                    quantity,
+                    price_unit,
+                    sub_total,
+                })
             } else {
-                if (open?._id) {
-                    await axios.patch(`/api/update-po-line/${open._id}`, {
-                        order_id,
-                        product_id,
-                        uom_id,
-                        quy_cach,
-                        contract_quantity,
-                        need_quantity,
-                        kho_tong,
-                        quotation_date,
-                        loss_rate,
-                        buyer_id,
-                        contract_id,
-                        note,
-                        standard,
-                        quantity,
-                        price_unit,
-                        sub_total,
-                    })
-                } else {
-                    await axios.post('/api/create-po-line', {
-                        order_id: pr_id,
-                        product_id,
-                        uom_id,
-                        quy_cach,
-                        buyer_id,
-                        contract_id,
-                        contract_quantity,
-                        need_quantity,
-                        kho_tong,
-                        quotation_date,
-                        loss_rate,
-                        note,
-                        standard,
-                        quantity,
-                        price_unit,
-                        sub_total,
-                    })
-                }
+                await axios.post('/api/create-po-line', {
+                    order_id: pr_id,
+                    product_id,
+                    uom_id,
+                    quy_cach,
+                    buyer_id,
+                    contract_id,
+                    contract_quantity,
+                    need_quantity,
+                    kho_tong,
+                    quotation_date,
+                    loss_rate,
+                    note,
+                    standard,
+                    quantity,
+                    price_unit,
+                    sub_total,
+                })
             }
-
             await getPos(pr_id)
             onClose()
             await handleGetRespectiveLines()
