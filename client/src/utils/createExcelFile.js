@@ -1267,8 +1267,28 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         worksheet.getColumn(10).width = 22
         worksheet.getColumn(12).width = 18
 
+        const grouppedData = Object.values(
+            data.reduce((acc, item) => {
+                const key = [
+                    item.product_id._id,
+                    item.uom_id._id,
+                    item.standard,
+                    item.quy_cach,
+                    item.price_unit,
+                ].join('_')
+
+                if (!acc[key]) {
+                    acc[key] = { ...item } // clone object đầu tiên
+                } else {
+                    acc[key].quantity += item.quantity
+                }
+
+                return acc
+            }, {})
+        )
+
         const listOfColumn = ['A', 'B', 'E', 'G', 'J', 'K', 'L', 'M']
-        for (let i = 0; i < data.length; i++) {
+        for (let i = 0; i < grouppedData.length; i++) {
             let rowNum = 19 + i
             for (let j = 0; j < listOfColumn.length; j++) {
                 let cellValue = ''
@@ -1278,36 +1298,38 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
                         break
                     case 'B':
                         worksheet.mergeCells(`B${rowNum}:D${rowNum}`)
-                        cellValue = data[i]?.product_id?.name
+                        cellValue = grouppedData[i]?.product_id?.name
                         break
                     case 'E':
                         worksheet.mergeCells(`E${rowNum}:F${rowNum}`)
-                        cellValue = data[i]?.uom_id?.name
+                        cellValue = grouppedData[i]?.uom_id?.name
                         break
                     case 'G':
                         worksheet.mergeCells(`G${rowNum}:I${rowNum}`)
-                        cellValue = data[i]?.standard
+                        cellValue = grouppedData[i]?.standard
                         break
                     case 'J':
-                        cellValue = data[i]?.quy_cach
+                        cellValue = grouppedData[i]?.quy_cach
                         break
                     case 'K':
                         worksheet.getCell(
                             `${listOfColumn[j]}${rowNum}`
                         ).numFmt = '#,##0'
-                        cellValue = data[i].quantity || 0
+                        cellValue = grouppedData[i].quantity || 0
                         break
                     case 'L':
                         worksheet.getCell(
                             `${listOfColumn[j]}${rowNum}`
                         ).numFmt = '#,##0'
-                        cellValue = data[i].price_unit || 0
+                        cellValue = grouppedData[i].price_unit || 0
                         break
                     case 'M':
                         worksheet.getCell(
                             `${listOfColumn[j]}${rowNum}`
                         ).numFmt = '#,##0'
-                        cellValue = data[i].quantity * data[i].price_unit || 0
+                        cellValue =
+                            grouppedData[i].quantity *
+                                grouppedData[i].price_unit || 0
                         break
                     default:
                         cellValue = ''
@@ -1330,7 +1352,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             }
         }
 
-        let endNumRow = 18 + data.length
+        let endNumRow = 18 + grouppedData.length
 
         worksheet.mergeCells(`A${endNumRow + 1}:L${endNumRow + 1}`)
         worksheet.getCell(`A${endNumRow + 1}`).value =
