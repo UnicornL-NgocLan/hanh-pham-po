@@ -12,6 +12,14 @@ router.get('/get-pr-sequences', poController.getPurchaseRequestSequences)
 router.get('/get-pr-lines/:order_id', poController.getPurchaseRequestLines)
 router.get('/get-pos', poController.getPurchaseOrders)
 router.get('/get-po-lines/:order_id', poController.getPurchaseOrderLines)
+router.get(
+    '/get-po-lines-history/:product_id',
+    poController.getPurchaseOrderLinesHistory
+)
+router.get(
+    '/get-po-lines-by-contract/:contract_id',
+    poController.getPurchaseOrderLinesByContract
+)
 
 router.patch(
     '/update-pr-sequence/:id',
@@ -25,5 +33,10 @@ router.patch('/update-po-line/:id', poController.updatePurchaseOrderLine)
 router.delete('/delete-pr-line/:id', poController.deletePurchaseRequestLine)
 router.delete('/delete-po-line/:id', poController.deletePurchaseOrderLine)
 router.delete('/delete-po/:id', poController.deletePurchaseOrder)
+
+router.post(
+    '/bulk-update-po-receipt-date',
+    poController.bulkUpdateReceiptDate
+)
 
 module.exports = router

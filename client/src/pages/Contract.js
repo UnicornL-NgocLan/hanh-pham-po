@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import { useZustand } from '../zustand.js'
-import { Button, Drawer, Form, Input, Space, Select, Table } from 'antd'
+import { Button, Drawer, Form, Input, Space, Select, Table, Modal } from 'antd'
 import Highlighter from 'react-highlight-words'
 import { SearchOutlined } from '@ant-design/icons'
 
 const Contract = () => {
     const [showDrawer, setShowDrawer] = useState(false)
+    const [showHistory, setShowHistory] = useState(null)
     const [data, setData] = useState([])
     const { setContractState, contracts } = useZustand()
     const [searchText, setSearchText] = useState('')
@@ -166,12 +167,25 @@ const Contract = () => {
             ...getColumnSearchProps('partner'),
         },
         {
+            title: 'Ngày có hàng gần nhất',
+            dataIndex: 'latest_delivery_date',
+            key: 'latest_delivery_date',
+            render: (text) => (
+                <span>
+                    {text ? new Date(text).toLocaleDateString('vi-VN') : ''}
+                </span>
+            ),
+        },
+        {
             title: 'Hành động',
             key: 'action',
             render: (_, record) => (
                 <Space size="middle">
                     <Button onClick={() => setShowDrawer(record)}>
                         Chỉnh sửa
+                    </Button>
+                    <Button onClick={() => setShowHistory(record)}>
+                        Lịch sử
                     </Button>
                 </Space>
             ),
@@ -200,6 +214,12 @@ const Contract = () => {
                     open={showDrawer}
                     onClose={() => setShowDrawer(false)}
                     getContracts={getContracts}
+                />
+            )}
+            {showHistory && (
+                <HistoryModal
+                    open={showHistory}
+                    onClose={() => setShowHistory(null)}
                 />
             )}
         </div>
@@ -316,5 +336,87 @@ const MyDrawer = ({ open, onClose, getContracts }) => {
                 </Form.Item>
             </Form>
         </Drawer>
+    )
+}
+
+const HistoryModal = ({ open, onClose }) => {
+    const [data, setData] = useState([])
+    const [loading, setLoading] = useState(false)
+
+    useEffect(() => {
+        if (open?._id) {
+            fetchHistory()
+        }
+    }, [open])
+
+    const fetchHistory = async () => {
+        try {
+            setLoading(true)
+            const res = await axios.get(
+                `/api/get-po-lines-by-contract/${open._id}`
+            )
+            setData(res.data.data)
+        } catch (error) {
+            console.log(error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const columns = [
+        {
+            title: 'Sản phẩm',
+            dataIndex: ['product_id', 'name'],
+            key: 'product_id',
+        },
+        {
+            title: 'Tên đơn đặt hàng',
+            dataIndex: ['order_id', 'name'],
+            key: 'order_name',
+        },
+        {
+            title: 'Số lượng cần mua',
+            dataIndex: 'quantity',
+            key: 'quantity',
+        },
+        {
+            title: 'Ngày báo giá',
+            dataIndex: 'quotation_date',
+            key: 'quotation_date',
+            render: (text) => (
+                <span>
+                    {text ? new Date(text).toLocaleDateString('vi-VN') : ''}
+                </span>
+            ),
+        },
+        {
+            title: 'Ngày giao hàng',
+            dataIndex: ['order_id', 'date_deliveried'],
+            key: 'date_deliveried',
+            render: (text) => (
+                <span>
+                    {text ? new Date(text).toLocaleDateString('vi-VN') : ''}
+                </span>
+            ),
+        },
+    ]
+
+    return (
+        <Modal
+            title={`Lịch sử hợp đồng: ${open?.code || ''}`}
+            open={!!open}
+            onCancel={onClose}
+            footer={null}
+            width={800}
+        >
+            <Table
+                columns={columns}
+                dataSource={data}
+                rowKey="_id"
+                loading={loading}
+                size="small"
+                pagination={{ pageSize: 10 }}
+            />
+        </Modal>
     )
 }

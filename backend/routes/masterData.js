@@ -17,4 +17,6 @@ router.patch('/update-product/:id', masterDataCtrl.updateProduct)
 router.patch('/update-uom/:id', masterDataCtrl.updateUom)
 router.patch('/update-contract/:id', masterDataCtrl.updateContract)
 
+router.delete('/delete-product/:id', masterDataCtrl.deleteProduct)
+
 module.exports = router

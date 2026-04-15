@@ -523,6 +523,34 @@ const poCtrl = {
         }
     },
 
+    getPurchaseOrderLinesHistory: async (req, res) => {
+        try {
+            const { product_id } = req.params
+            const data = await PurchaseOrderLine.find({
+                product_id: product_id,
+            })
+                .populate('product_id')
+                .sort({ quotation_date: -1, createdAt: -1 })
+            res.status(200).json({ data })
+        } catch (error) {
+            res.status(500).json({ msg: error.message })
+        }
+    },
+
+    getPurchaseOrderLinesByContract: async (req, res) => {
+        try {
+            const { contract_id } = req.params
+            const data = await PurchaseOrderLine.find({
+                contract_id: contract_id,
+            })
+                .populate('product_id order_id')
+                .sort({ quotation_date: -1 })
+            res.status(200).json({ data })
+        } catch (error) {
+            res.status(500).json({ msg: error.message })
+        }
+    },
+
     deletePurchaseOrder: async (req, res) => {
         try {
             const { id } = req.params
@@ -532,6 +560,29 @@ const poCtrl = {
             await PurchaseOrder.findOneAndDelete({ _id: id })
 
             res.status(200).json({ msg: 'OK' })
+        } catch (error) {
+            res.status(500).json({ msg: error.message })
+        }
+    },
+
+    bulkUpdateReceiptDate: async (req, res) => {
+        try {
+            const { data } = req.body // Array of { order_name, date_received }
+            
+            if (!data || !Array.isArray(data)) {
+                return res.status(400).json({ msg: 'Dữ liệu không hợp lệ.' })
+            }
+
+            const updatePromises = data.map(item => {
+                return PurchaseOrder.findOneAndUpdate(
+                    { name: item.order_name.trim() },
+                    { date_received: item.date_received },
+                    { new: true }
+                )
+            })
+
+            await Promise.all(updatePromises)
+            res.status(200).json({ msg: 'Cập nhật ngày nhập kho thành công.' })
         } catch (error) {
             res.status(500).json({ msg: error.message })
         }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Button, Drawer, Form, Input, Space, Select, Table } from 'antd'
+import { Button, Drawer, Form, Input, Space, Select, Table, Modal } from 'antd'
 import { useZustand } from '../zustand.js'
 import axios from 'axios'
 import Highlighter from 'react-highlight-words'
@@ -14,6 +14,7 @@ const validExcelFile = [
 
 const Product = () => {
     const [showDrawer, setShowDrawer] = useState(false)
+    const [showHistory, setShowHistory] = useState(null)
     const [data, setData] = useState([])
     const { setProductState, products, uoms } = useZustand()
     const [searchText, setSearchText] = useState('')
@@ -129,6 +130,20 @@ const Product = () => {
     useEffect(() => {
         setData(products)
     }, [])
+
+    const handleDelete = async (record) => {
+        if (
+            window.confirm(`Bạn có chắc chắn muốn xóa sản phẩm ${record.name}?`)
+        ) {
+            try {
+                await axios.delete(`/api/delete-product/${record._id}`)
+                await getProducts()
+            } catch (error) {
+                console.log(error)
+                alert(error?.response?.data?.msg || 'Có lỗi xảy ra')
+            }
+        }
+    }
 
     const getColumnSearchProps = (dataIndex) => ({
         filterDropdown: ({
@@ -275,12 +290,32 @@ const Product = () => {
             render: (text) => <span>{text}</span>,
         },
         {
+            title: 'Trạng thái',
+            dataIndex: 'active',
+            key: 'active',
+            filters: [
+                { text: 'Khả dụng', value: true },
+                { text: 'Không khả dụng', value: false },
+            ],
+            defaultFilteredValue: ['true'],
+            onFilter: (value, record) => record.active === value,
+            render: (text) => (
+                <span>{text === false ? 'Không khả dụng' : 'Khả dụng'}</span>
+            ),
+        },
+        {
             title: 'Hành động',
             key: 'action',
             render: (_, record) => (
                 <Space size="middle">
                     <Button onClick={() => setShowDrawer(record)}>
                         Chỉnh sửa
+                    </Button>
+                    <Button onClick={() => setShowHistory(record)}>
+                        Lịch sử
+                    </Button>
+                    <Button danger onClick={() => handleDelete(record)}>
+                        Xóa
                     </Button>
                 </Space>
             ),
@@ -324,6 +359,12 @@ const Product = () => {
                     getProducts={getProducts}
                 />
             )}
+            {showHistory && (
+                <HistoryModal
+                    open={showHistory}
+                    onClose={() => setShowHistory(null)}
+                />
+            )}
         </div>
     )
 }
@@ -337,7 +378,7 @@ const MyDrawer = ({ open, onClose, getProducts }) => {
 
     const handleOk = async () => {
         try {
-            const { name, code, quy_cach, standard, uom_id } =
+            const { name, code, quy_cach, standard, uom_id, active } =
                 form.getFieldsValue()
             if (!name || !uom_id)
                 return alert('Vui lòng nhập đầy đủ thông tin bắt buộc')
@@ -349,6 +390,7 @@ const MyDrawer = ({ open, onClose, getProducts }) => {
                     quy_cach,
                     standard,
                     uom_id,
+                    active,
                 })
             } else {
                 await axios.post('/api/create-product', {
@@ -357,6 +399,7 @@ const MyDrawer = ({ open, onClose, getProducts }) => {
                     quy_cach,
                     standard,
                     uom_id,
+                    active,
                 })
             }
             onClose()
@@ -376,6 +419,12 @@ const MyDrawer = ({ open, onClose, getProducts }) => {
             form.setFieldValue('quy_cach', open?.quy_cach)
             form.setFieldValue('standard', open?.standard)
             form.setFieldValue('uom_id', open?.uom_id?._id)
+            form.setFieldValue(
+                'active',
+                open?.active !== undefined ? open?.active : true
+            )
+        } else {
+            form.setFieldValue('active', true)
         }
     }, [])
 
@@ -448,7 +497,87 @@ const MyDrawer = ({ open, onClose, getProducts }) => {
                 <Form.Item name="standard" label="Chất lượng tiêu chuẩn">
                     <Input className="w-full" placeholder="30x40x70..." />
                 </Form.Item>
+                <Form.Item
+                    name="active"
+                    label="Trạng thái"
+                    rules={[
+                        { required: true, message: 'Hãy chọn trạng thái!' },
+                    ]}
+                >
+                    <Select
+                        options={[
+                            { value: true, label: 'Khả dụng' },
+                            { value: false, label: 'Không khả dụng' },
+                        ]}
+                    />
+                </Form.Item>
             </Form>
         </Drawer>
+    )
+}
+
+const HistoryModal = ({ open, onClose }) => {
+    const [data, setData] = useState([])
+    const [loading, setLoading] = useState(false)
+
+    useEffect(() => {
+        if (open?._id) {
+            fetchHistory()
+        }
+    }, [open])
+
+    const fetchHistory = async () => {
+        try {
+            setLoading(true)
+            const res = await axios.get(`/api/get-po-lines-history/${open._id}`)
+            setData(res.data.data)
+        } catch (error) {
+            console.log(error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const columns = [
+        {
+            title: 'Số lượng cần mua',
+            dataIndex: 'quantity',
+            key: 'quantity',
+        },
+        {
+            title: 'Đơn giá',
+            dataIndex: 'price_unit',
+            key: 'price_unit',
+            render: (text) => <span>{text?.toLocaleString('vi-VN')}</span>,
+        },
+        {
+            title: 'Ngày báo giá',
+            dataIndex: 'quotation_date',
+            key: 'quotation_date',
+            render: (text) => (
+                <span>
+                    {text ? new Date(text).toLocaleDateString('vi-VN') : ''}
+                </span>
+            ),
+        },
+    ]
+
+    return (
+        <Modal
+            title={`Lịch sử đặt hàng: ${open?.name || ''}`}
+            open={!!open}
+            onCancel={onClose}
+            footer={null}
+            width={800}
+        >
+            <Table
+                columns={columns}
+                dataSource={data}
+                rowKey="_id"
+                loading={loading}
+                size="small"
+                pagination={{ pageSize: 10 }}
+            />
+        </Modal>
     )
 }

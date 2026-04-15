@@ -2,6 +2,7 @@ const Partners = require('../model/partner.js')
 const Products = require('../model/product.js')
 const Uoms = require('../model/uom.js')
 const Contracts = require('../model/contract.js')
+const PurchaseOrderLine = require('../model/purchaseOrderLine.js')
 
 const masterDataCtrl = {
     createPartner: async (req, res) => {
@@ -110,6 +111,25 @@ const masterDataCtrl = {
         }
     },
 
+    deleteProduct: async (req, res) => {
+        try {
+            const { id } = req.params
+            const poLine = await PurchaseOrderLine.findOne({
+                product_id: id,
+            }).populate('order_id')
+            if (poLine) {
+                const orderName = poLine?.order_id?.name || 'không xác định'
+                return res.status(400).json({
+                    msg: `Sản phẩm đã tồn tại trong đơn hàng ${orderName}, không thể xóa.`,
+                })
+            }
+            await Products.findByIdAndDelete(id)
+            res.status(200).json({ msg: 'Xóa thành công' })
+        } catch (error) {
+            res.status(500).json({ msg: error.message })
+        }
+    },
+
     createUom: async (req, res) => {
         try {
             const { name } = req.body
@@ -176,8 +196,19 @@ const masterDataCtrl = {
 
     getContracts: async (req, res) => {
         try {
-            const data = await Contracts.find({}).populate('partner_id')
-            res.status(200).json({ data })
+            const rawData = await Contracts.find({})
+                .populate('partner_id')
+                .lean()
+            const PurchaseOrder = require('../model/purchaseOrder.js')
+            for (let i = 0; i < rawData.length; i++) {
+                const po = await PurchaseOrder.findOne({
+                    contract_id: rawData[i]._id,
+                })
+                    .sort({ date_deliveried: -1 })
+                    .select('date_deliveried')
+                rawData[i].latest_delivery_date = po ? po.date_deliveried : null
+            }
+            res.status(200).json({ data: rawData })
         } catch (error) {
             res.status(500).json({ msg: error.message })
         }

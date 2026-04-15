@@ -10,9 +10,11 @@ import {
     DatePicker,
     Tag,
     Tooltip,
+    Modal,
+    Upload,
 } from 'antd'
 import axios from 'axios'
-import { Table, Modal, InputNumber } from 'antd'
+import { Table, InputNumber } from 'antd'
 import { FaTrash } from 'react-icons/fa'
 import { useZustand } from '../zustand.js'
 import moment from 'moment'
@@ -35,6 +37,13 @@ const { RangePicker } = DatePicker
 dayjs.extend(customParseFormat)
 dayjs.extend(isBetween)
 
+const validExcelFile = [
+    '.csv',
+    '.xlsx',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-excel',
+]
+
 const PurchaseOrder = () => {
     const [showDrawer, setShowDrawer] = useState(false)
     const { setPoState, pos } = useZustand()
@@ -47,6 +56,7 @@ const PurchaseOrder = () => {
     const [selectedRowKeys, setSelectedRowKeys] = useState([])
     const [filteredData, setFilteredData] = useState([])
     const [isFilteredDate, setIsFilteredDate] = useState(false)
+    const fileInputReceiptRef = useRef(null)
 
     const getPos = async (id = false) => {
         try {
@@ -308,7 +318,125 @@ const PurchaseOrder = () => {
             ),
     })
 
-    const handleDateFilter = (dates, type) => {
+    const handleImportReceiptDate = async (e) => {
+        try {
+            const file = e.target.files
+            const fileType = file[0].type
+            if (!validExcelFile.includes(fileType))
+                return alert('File của bạn phải là excel')
+
+            const buffer = await new Promise((resolve, reject) => {
+                const fileReader = new FileReader()
+                fileReader.readAsArrayBuffer(file[0])
+                fileReader.onload = (e) => resolve(e.target.result)
+                fileReader.onerror = (err) => reject(err)
+            })
+
+            const worker = new Worker(
+                new URL('../workers/excelWorker.worker.js', import.meta.url)
+            )
+
+            worker.postMessage(buffer)
+
+            worker.onmessage = async (e) => {
+                const { success, data, error } = e.data
+                if (success) {
+                    const conflicts = []
+                    const poMap = {}
+                    data.forEach((row) => {
+                        const orderName = row['ĐƠN HÀNG']?.toString()?.trim()
+                        let rawDate = row['NGÀY']
+                        console.log(rawDate, orderName)
+
+                        if (!orderName || !rawDate) return
+
+                        let dateStr = rawDate
+                        if (typeof rawDate === 'number') {
+                            const date = new Date(
+                                Math.round((rawDate - 25569) * 86400 * 1000)
+                            )
+                            dateStr = moment(date).format('DD/MM/YYYY')
+                        }
+
+                        if (!poMap[orderName]) {
+                            poMap[orderName] = new Set()
+                        }
+                        poMap[orderName].add(dateStr)
+                    })
+
+                    Object.keys(poMap).forEach((name) => {
+                        if (poMap[name].size > 1) {
+                            conflicts.push(
+                                `${name} (${Array.from(poMap[name]).join(', ')})`
+                            )
+                        }
+                    })
+
+                    if (conflicts.length > 0) {
+                        alert(
+                            `Phát hiện xung đột dữ liệu (Cùng đơn hàng nhưng khác ngày):\n${conflicts.join('\n')}`
+                        )
+                        fileInputReceiptRef.current.value = ''
+                        worker.terminate()
+                        return
+                    }
+
+                    const updateData = []
+                    Object.keys(poMap).forEach((name) => {
+                        const dateStr = Array.from(poMap[name])[0]
+                        const dateObj = moment(dateStr, 'DD/MM/YYYY').toDate()
+                        updateData.push({
+                            order_name: name,
+                            date_received: dateObj,
+                        })
+                    })
+
+                    if (updateData.length === 0) {
+                        alert('Không tìm thấy dữ liệu hợp lệ trong file.')
+                        fileInputReceiptRef.current.value = ''
+                        worker.terminate()
+                        return
+                    }
+
+                    await axios.post('/api/bulk-update-po-receipt-date', {
+                        data: updateData,
+                    })
+                    alert('Đã cập nhật xong!')
+                    await getPos()
+                } else {
+                    alert('Lỗi xử lý file: ' + error)
+                }
+                worker.terminate()
+            }
+
+            worker.onerror = (err) => {
+                console.error('Worker error:', err)
+                alert('Đã xảy ra lỗi trong quá trình xử lý file.')
+                worker.terminate()
+            }
+        } catch (error) {
+            alert('Lỗi: ' + (error?.response?.data?.msg || error.message))
+        } finally {
+            fileInputReceiptRef.current.value = ''
+        }
+    }
+
+    const handleDateFilter = (dates, type, filterNull = false) => {
+        if (filterNull) {
+            const filtered = data.filter((item) => {
+                const value =
+                    type === 'received'
+                        ? item.date_received
+                        : type === 'delivered'
+                          ? item.date_deliveried
+                          : item.date_ordered
+                return !value
+            })
+            setFilteredData(filtered)
+            setIsFilteredDate(true)
+            return
+        }
+
         if (!dates || dates.length === 0) {
             setFilteredData(data)
             setIsFilteredDate(false)
@@ -317,10 +445,18 @@ const PurchaseOrder = () => {
             const filtered = data.filter((item) => {
                 const startDay = dayjs(start, 'DD/MM/YYYY')
                 const endDay = dayjs(end, 'DD/MM/YYYY')
-                const dueDateFormat =
-                    type === 'delivered'
-                        ? dayjs(item.date_deliveried)
-                        : dayjs(item.date_ordered)
+                const rawValue =
+                    type === 'received'
+                        ? item.date_received
+                        : type === 'delivered'
+                          ? item.date_deliveried
+                          : item.date_ordered
+
+                if (!rawValue) return false
+
+                const dueDateFormat = dayjs(rawValue)
+                if (!dueDateFormat.isValid()) return false
+
                 return dueDateFormat.isBetween(startDay, endDay, 'day', '[]')
             })
             setFilteredData(filtered)
@@ -378,7 +514,9 @@ const PurchaseOrder = () => {
                 </div>
             ),
             onFilter: () => {},
-            render: (value) => <span>{dayjs(value).format('DD/MM/YYYY')}</span>,
+            render: (value) => (
+                <span>{value ? dayjs(value).format('DD/MM/YYYY') : '-'}</span>
+            ),
         },
         {
             title: 'Ngày giao hàng',
@@ -393,16 +531,91 @@ const PurchaseOrder = () => {
             },
             filterDropdown: () => (
                 <div style={{ padding: 8 }}>
-                    <RangePicker
-                        onChange={(dates) =>
-                            handleDateFilter(dates, 'delivered')
-                        }
-                    />
+                    <Space direction="vertical">
+                        <RangePicker
+                            onChange={(dates) =>
+                                handleDateFilter(dates, 'delivered')
+                            }
+                        />
+                        <Space>
+                            <Button
+                                type="link"
+                                size="small"
+                                onClick={() =>
+                                    handleDateFilter(null, 'delivered', true)
+                                }
+                                style={{ padding: 0 }}
+                            >
+                                Đơn chưa có ngày
+                            </Button>
+                            <Button
+                                type="link"
+                                size="small"
+                                onClick={() =>
+                                    handleDateFilter(null, 'delivered')
+                                }
+                                style={{ padding: 0 }}
+                                danger
+                            >
+                                Reset
+                            </Button>
+                        </Space>
+                    </Space>
                 </div>
             ),
             onFilter: () => {},
             render: (value) => (
-                <span>{moment(value).format('DD/MM/YYYY')}</span>
+                <span>{value ? moment(value).format('DD/MM/YYYY') : '-'}</span>
+            ),
+        },
+        {
+            title: 'Ngày nhập kho',
+            dataIndex: 'date_received',
+            key: 'date_received',
+            align: 'right',
+            sorter: (a, b) => {
+                return (
+                    dayjs(a.date_received).valueOf() -
+                    dayjs(b.date_received).valueOf()
+                )
+            },
+            filterDropdown: () => (
+                <div style={{ padding: 8 }}>
+                    <Space direction="vertical">
+                        <RangePicker
+                            onChange={(dates) =>
+                                handleDateFilter(dates, 'received')
+                            }
+                        />
+                        <Space>
+                            <Button
+                                type="link"
+                                size="small"
+                                onClick={() =>
+                                    handleDateFilter(null, 'received', true)
+                                }
+                                style={{ padding: 0 }}
+                            >
+                                Đơn chưa có ngày
+                            </Button>
+                            <Button
+                                type="link"
+                                size="small"
+                                onClick={() =>
+                                    handleDateFilter(null, 'received')
+                                }
+                                style={{ padding: 0 }}
+                                danger
+                            >
+                                Reset
+                            </Button>
+                        </Space>
+                    </Space>
+                </div>
+            ),
+            onFilter: () => {},
+            render: (value) => (
+                <span>{value ? moment(value).format('DD/MM/YYYY') : '-'}</span>
             ),
         },
         {
@@ -500,6 +713,22 @@ const PurchaseOrder = () => {
                 >
                     Tạo
                 </Button>
+                <div>
+                    <input
+                        type="file"
+                        ref={fileInputReceiptRef}
+                        style={{ display: 'none' }}
+                        onChange={handleImportReceiptDate}
+                    />
+                    <Button
+                        onClick={() => {
+                            fileInputReceiptRef.current.click()
+                        }}
+                        style={{ marginBottom: 16 }}
+                    >
+                        Import ngày nhập kho
+                    </Button>
+                </div>
                 {selectedRowKeys.length > 0 && (
                     <Button
                         onClick={handleExportSummaryFile}
@@ -640,7 +869,6 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                 !customer_id
             )
                 return alert('Vui lòng nhập đầy đủ thông tin bắt buộc')
-
             setLoading(true)
 
             let po_id_created
@@ -1814,12 +2042,14 @@ const MyPurchaseRequestLineDrawer = ({
                                     .toLowerCase()
                                     .includes(input.toLowerCase())
                             }
-                            options={products.map((i) => {
-                                return {
-                                    value: i._id,
-                                    label: i.name,
-                                }
-                            })}
+                            options={products
+                                .filter((i) => i.active)
+                                .map((i) => {
+                                    return {
+                                        value: i._id,
+                                        label: i.name,
+                                    }
+                                })}
                         />
                     </Form.Item>
                     <Form.Item

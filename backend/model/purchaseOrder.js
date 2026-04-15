@@ -23,6 +23,7 @@ const PurchaseOrderSchema = mongoose.Schema(
         customer_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner' },
         replacedForContract: String,
         date: Date,
+        date_received: Date,
     },
     { timestamps: true }
 )
