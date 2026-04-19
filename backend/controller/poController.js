@@ -529,7 +529,7 @@ const poCtrl = {
             const data = await PurchaseOrderLine.find({
                 product_id: product_id,
             })
-                .populate('product_id')
+                .populate('product_id uom_id buyer_id contract_id order_id')
                 .sort({ quotation_date: -1, createdAt: -1 })
             res.status(200).json({ data })
         } catch (error) {
@@ -543,7 +543,7 @@ const poCtrl = {
             const data = await PurchaseOrderLine.find({
                 contract_id: contract_id,
             })
-                .populate('product_id order_id')
+                .populate('product_id uom_id buyer_id contract_id order_id')
                 .sort({ quotation_date: -1 })
             res.status(200).json({ data })
         } catch (error) {
@@ -568,14 +568,22 @@ const poCtrl = {
     bulkUpdateReceiptDate: async (req, res) => {
         try {
             const { data } = req.body // Array of { order_name, date_received }
-            
+
             if (!data || !Array.isArray(data)) {
                 return res.status(400).json({ msg: 'Dữ liệu không hợp lệ.' })
             }
 
-            const updatePromises = data.map(item => {
+            const updatePromises = data.map((item) => {
+                const escapedName = item.order_name.replace(
+                    /[.*+?^${}()|[\]\\]/g,
+                    '\\$&'
+                )
+                const regexPattern = `^\\s*${escapedName
+                    .split('')
+                    .join('\\s*')}\\s*$`
+
                 return PurchaseOrder.findOneAndUpdate(
-                    { name: item.order_name.trim() },
+                    { name: { $regex: regexPattern, $options: 'i' } },
                     { date_received: item.date_received },
                     { new: true }
                 )

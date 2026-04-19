@@ -344,7 +344,9 @@ const PurchaseOrder = () => {
                     const conflicts = []
                     const poMap = {}
                     data.forEach((row) => {
-                        const orderName = row['ĐƠN HÀNG']?.toString()?.trim()
+                        const orderName = row['ĐƠN HÀNG']
+                            ?.toString()
+                            ?.replace(/\s+/g, '')
                         let rawDate = row['NGÀY']
                         console.log(rawDate, orderName)
 

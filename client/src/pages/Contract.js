@@ -4,6 +4,7 @@ import { useZustand } from '../zustand.js'
 import { Button, Drawer, Form, Input, Space, Select, Table, Modal } from 'antd'
 import Highlighter from 'react-highlight-words'
 import { SearchOutlined } from '@ant-design/icons'
+import moment from 'moment'
 
 const Contract = () => {
     const [showDrawer, setShowDrawer] = useState(false)
@@ -365,39 +366,144 @@ const HistoryModal = ({ open, onClose }) => {
 
     const columns = [
         {
+            title: 'Số ĐH',
+            dataIndex: 'po_name',
+            key: 'po_name',
+            width: 150,
+            fixed: 'left',
+        },
+        {
+            title: 'Ngày đặt hàng PO',
+            dataIndex: 'po_date_ordered',
+            key: 'po_date_ordered',
+            width: 130,
+            render: (value) =>
+                value ? <span>{moment(value).format('DD/MM/YYYY')}</span> : '-',
+        },
+        {
+            title: 'Ngày giao hàng PO',
+            dataIndex: 'po_date_deliveried',
+            key: 'po_date_deliveried',
+            width: 130,
+            render: (value) =>
+                value ? <span>{moment(value).format('DD/MM/YYYY')}</span> : '-',
+        },
+        {
+            title: 'Ngày nhập kho PO',
+            dataIndex: 'po_date_received',
+            key: 'po_date_received',
+            width: 130,
+            render: (value) =>
+                value ? <span>{moment(value).format('DD/MM/YYYY')}</span> : '-',
+        },
+        {
             title: 'Sản phẩm',
-            dataIndex: ['product_id', 'name'],
-            key: 'product_id',
+            dataIndex: 'product',
+            key: 'product',
+            width: 200,
         },
         {
-            title: 'Tên đơn đặt hàng',
-            dataIndex: ['order_id', 'name'],
-            key: 'order_name',
+            title: 'ĐVT',
+            dataIndex: 'uom',
+            key: 'uom',
+            width: 80,
         },
         {
-            title: 'Số lượng cần mua',
-            dataIndex: 'quantity',
-            key: 'quantity',
+            title: 'Quy cách (cm)',
+            dataIndex: 'quy_cach',
+            key: 'quy_cach',
+            width: 120,
+        },
+        {
+            title: 'Chất lượng tiêu chuẩn',
+            dataIndex: 'standard',
+            width: 180,
+            key: 'standard',
+        },
+        {
+            title: 'Khách hàng',
+            dataIndex: 'buyer',
+            key: 'buyer',
+            width: 150,
+        },
+        {
+            title: 'Hợp đồng',
+            dataIndex: 'contract',
+            key: 'contract',
+            width: 150,
         },
         {
             title: 'Ngày báo giá',
             dataIndex: 'quotation_date',
             key: 'quotation_date',
-            render: (text) => (
-                <span>
-                    {text ? new Date(text).toLocaleDateString('vi-VN') : ''}
-                </span>
-            ),
+            width: 120,
+            align: 'right',
+            render: (value) =>
+                value ? (
+                    <span>{moment(value).format('DD/MM/YYYY')}</span>
+                ) : undefined,
         },
         {
-            title: 'Ngày giao hàng',
-            dataIndex: ['order_id', 'date_deliveried'],
-            key: 'date_deliveried',
-            render: (text) => (
-                <span>
-                    {text ? new Date(text).toLocaleDateString('vi-VN') : ''}
-                </span>
-            ),
+            title: 'SL theo HĐ',
+            dataIndex: 'contract_quantity',
+            key: 'contract_quantity',
+            width: 100,
+            align: 'right',
+            render: (value) => <span>{Intl.NumberFormat().format(value)}</span>,
+        },
+        {
+            title: 'Kho tổng',
+            dataIndex: 'kho_tong',
+            key: 'kho_tong',
+            width: 100,
+            align: 'right',
+            render: (value) => <span>{Intl.NumberFormat().format(value)}</span>,
+        },
+        {
+            title: 'SL cần thêm',
+            dataIndex: 'sl_can_them',
+            key: 'sl_can_them',
+            width: 100,
+            align: 'right',
+            render: (value) => <span>{Intl.NumberFormat().format(value)}</span>,
+        },
+        {
+            title: '% hao hụt',
+            dataIndex: 'loss_rate',
+            key: 'loss_rate',
+            width: 100,
+            align: 'right',
+            render: (value) => <span>{Intl.NumberFormat().format(value)}</span>,
+        },
+        {
+            title: 'SL cần mua',
+            dataIndex: 'quantity',
+            key: 'quantity',
+            width: 110,
+            align: 'right',
+            render: (value) => <span>{Intl.NumberFormat().format(value)}</span>,
+        },
+        {
+            title: 'Đơn giá',
+            dataIndex: 'price_unit',
+            key: 'price_unit',
+            width: 110,
+            align: 'right',
+            render: (value) => <span>{Intl.NumberFormat().format(value)}</span>,
+        },
+        {
+            title: 'Thành tiền',
+            dataIndex: 'sub_total',
+            key: 'sub_total',
+            width: 120,
+            align: 'right',
+            render: (value) => <span>{Intl.NumberFormat().format(value)}</span>,
+        },
+        {
+            title: 'Ghi chú',
+            dataIndex: 'note',
+            key: 'note',
+            width: 150,
         },
     ]
 
@@ -407,15 +513,42 @@ const HistoryModal = ({ open, onClose }) => {
             open={!!open}
             onCancel={onClose}
             footer={null}
-            width={800}
+            width={1300}
+            style={{ top: 20 }}
         >
             <Table
                 columns={columns}
-                dataSource={data}
+                dataSource={data.map((i) => {
+                    let contractString = ''
+                    const contractList = i.contract_id || []
+                    for (let k = 0; k < contractList.length; k++) {
+                        if (k === contractList.length - 1) {
+                            contractString =
+                                contractString + contractList[k]?.code
+                        } else {
+                            contractString =
+                                contractString + contractList[k]?.code + ', '
+                        }
+                    }
+                    return {
+                        ...i,
+                        po_name: i.order_id?.name,
+                        po_date_ordered: i.order_id?.date_ordered,
+                        po_date_deliveried: i.order_id?.date_deliveried,
+                        po_date_received: i.order_id?.date_received,
+                        product: i.product_id?.name,
+                        uom: i.uom_id?.name,
+                        buyer: i.buyer_id?.name,
+                        contract: contractString,
+                        sl_can_them:
+                            (i.contract_quantity || 0) - (i.kho_tong || 0),
+                    }
+                })}
                 rowKey="_id"
                 loading={loading}
                 size="small"
-                pagination={{ pageSize: 10 }}
+                pagination={{ pageSize: 15 }}
+                scroll={{ x: 'max-content', y: 'calc(100vh - 250px)' }}
             />
         </Modal>
     )
