@@ -602,6 +602,24 @@ const HistoryModal = ({ open, onClose }) => {
             width: 150,
         },
         {
+            title: 'Brand',
+            dataIndex: 'brand',
+            key: 'brand',
+            width: 150,
+        },
+        {
+            title: 'Mặt hàng',
+            dataIndex: 'bundle',
+            key: 'bundle',
+            width: 150,
+        },
+        {
+            title: 'Packing',
+            dataIndex: 'packing',
+            key: 'packing',
+            width: 150,
+        },
+        {
             title: 'Hợp đồng',
             dataIndex: 'contract',
             key: 'contract',
@@ -714,7 +732,10 @@ const HistoryModal = ({ open, onClose }) => {
                         product: i.product_id?.name,
                         uom: i.uom_id?.name,
                         buyer: i.buyer_id?.name,
+                        brand: i.brand_id?.name,
+                        bundle: i.bundle_id?.name,
                         contract: contractString,
+                        packing: i.packing_id?.name,
                         sl_can_them:
                             (i.contract_quantity || 0) - (i.kho_tong || 0),
                     }

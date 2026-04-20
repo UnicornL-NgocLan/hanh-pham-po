@@ -5,8 +5,12 @@ import { TfiPackage } from 'react-icons/tfi'
 import { FaRegUser } from 'react-icons/fa6'
 import { IoIosWater } from 'react-icons/io'
 import { VscGitPullRequestNewChanges } from 'react-icons/vsc'
-import { TbHexagonNumber3Filled } from 'react-icons/tb'
-import { IoDocumentTextSharp } from 'react-icons/io5'
+import {
+    TbHexagonNumber3Filled,
+    TbBrandOpenSource,
+    TbPackages,
+} from 'react-icons/tb'
+import { IoCartSharp, IoDocumentTextSharp, IoDuplicate } from 'react-icons/io5'
 const { Content, Sider } = Layout
 
 const siderStyle = {
@@ -66,6 +70,30 @@ const App = () => {
                 handleNavigate('/contract', 7)
             },
         },
+        {
+            key: 8,
+            icon: <TbBrandOpenSource />,
+            label: 'Brand',
+            onClick: () => {
+                handleNavigate('/brand', 8)
+            },
+        },
+        {
+            key: 9,
+            icon: <IoCartSharp />,
+            label: 'Mặt hàng',
+            onClick: () => {
+                handleNavigate('/bundle', 9)
+            },
+        },
+        {
+            key: 11,
+            icon: <TbPackages />,
+            label: 'Packing',
+            onClick: () => {
+                handleNavigate('/packing', 11)
+            },
+        },
         // {
         //     key: 4,
         //     icon: <VscGitPullRequestNewChanges />,
@@ -80,6 +108,14 @@ const App = () => {
             label: 'Đơn mua hàng',
             onClick: () => {
                 handleNavigate('/purchase-order', 6)
+            },
+        },
+        {
+            key: 10,
+            icon: <IoDuplicate />,
+            label: 'Đơn dự phòng',
+            onClick: () => {
+                handleNavigate('/backup-purchase-order', 10)
             },
         },
         {

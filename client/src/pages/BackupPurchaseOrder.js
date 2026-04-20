@@ -14,6 +14,7 @@ import {
     Upload,
     Row,
     Col,
+    Tabs,
 } from 'antd'
 import axios from 'axios'
 import { Table, InputNumber } from 'antd'
@@ -22,7 +23,7 @@ import { useZustand } from '../zustand.js'
 import moment from 'moment'
 import Highlighter from 'react-highlight-words'
 import { MdModeEdit } from 'react-icons/md'
-import { DeleteFilled, SearchOutlined } from '@ant-design/icons'
+import { DeleteFilled, EditFilled, SearchOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import customParseFormat from 'dayjs/plugin/customParseFormat'
 import isBetween from 'dayjs/plugin/isBetween'
@@ -46,9 +47,9 @@ const validExcelFile = [
     'application/vnd.ms-excel',
 ]
 
-const PurchaseOrder = () => {
+const BackupPurchaseOrder = () => {
     const [showDrawer, setShowDrawer] = useState(false)
-    const { setPoState, pos } = useZustand()
+    const { setBackupPoState, backup_pos } = useZustand()
     const [data, setData] = useState([])
     const [searchText, setSearchText] = useState('')
     const [loading, setLoading] = useState(false)
@@ -59,11 +60,223 @@ const PurchaseOrder = () => {
     const [filteredData, setFilteredData] = useState([])
     const [isFilteredDate, setIsFilteredDate] = useState(false)
     const fileInputReceiptRef = useRef(null)
+    const {
+        products,
+        brands,
+        partners,
+        bundles,
+        contracts,
+        setContractState,
+        packings,
+    } = useZustand()
+    const [trackerFilters, setTrackerFilters] = useState({
+        buyer_id: 'all',
+        bundle_id: 'all',
+        brand_id: 'all',
+        packing_id: 'all',
+        status: 'all',
+    })
+    const [trackerData, setTrackerData] = useState([])
+    const [trackerLoading, setTrackerLoading] = useState(false)
+    const [appliedFilters, setAppliedFilters] = useState({
+        status: 'all',
+    })
+    const [selectedDistinctRecord, setSelectedDistinctRecord] = useState(null)
+    const [trackingDetailModalVisible, setTrackingDetailModalVisible] =
+        useState(false)
+
+    // UsedQuantityTransaction
+    const [uqtModalVisible, setUqtModalVisible] = useState(false)
+    const [uqtTargetLine, setUqtTargetLine] = useState(null)
+    const [uqtForm, setUqtForm] = useState({
+        usedQuantity: null,
+        usedDate: null,
+        usedForContractId: null,
+    })
+    const [uqtSubmitting, setUqtSubmitting] = useState(false)
+    const [uqtTransactions, setUqtTransactions] = useState({}) // { [lineId]: [...] }
+    // Edit UQT
+    const [uqtEditModalVisible, setUqtEditModalVisible] = useState(false)
+    const [uqtEditTarget, setUqtEditTarget] = useState(null) // the txn being edited
+    const [uqtEditForm, setUqtEditForm] = useState({
+        usedQuantity: null,
+        usedDate: null,
+        usedForContractId: null,
+    })
+    const [uqtEditSubmitting, setUqtEditSubmitting] = useState(false)
+    const [openMyContractDrawer, setOpenMyContractDrawer] = useState(false)
+
+    const getContracts = async () => {
+        try {
+            const { data } = await axios.get('/api/get-contracts')
+            setContractState(data.data)
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    useEffect(() => {
+        if (contracts.length === 0) {
+            getContracts()
+        }
+    }, [])
+
+    const fetchTrackerData = async () => {
+        try {
+            setTrackerLoading(true)
+            const { buyer_id, bundle_id, brand_id, packing_id } = trackerFilters
+            const { data } = await axios.get(
+                `/api/get-po-tracker?buyer_id=${buyer_id}&bundle_id=${bundle_id}&brand_id=${brand_id}&packing_id=${packing_id}`
+            )
+            setTrackerData(data.data)
+            setAppliedFilters({ status: trackerFilters.status })
+
+            // Bulk-fetch UQT transactions for all returned lines
+            if (data.data && data.data.length > 0) {
+                const lineIds = data.data.map((l) => l._id).join(',')
+                const uqtRes = await axios.get(
+                    `/api/get-used-qty-transactions-bulk?line_ids=${lineIds}`
+                )
+                const grouped = {}
+                uqtRes.data.data.forEach((t) => {
+                    const lid =
+                        t.purchase_order_line_id?._id ||
+                        t.purchase_order_line_id
+                    if (!grouped[lid]) grouped[lid] = []
+                    grouped[lid].push(t)
+                })
+                setUqtTransactions((prev) => ({ ...prev, ...grouped }))
+            }
+        } catch (error) {
+            console.error(error)
+            alert('Lỗi khi tải dữ liệu theo dõi')
+        } finally {
+            setTrackerLoading(false)
+        }
+    }
+
+    const fetchUqtByLine = async (lineId) => {
+        try {
+            const { data } = await axios.get(
+                `/api/get-used-qty-transactions/${lineId}`
+            )
+            setUqtTransactions((prev) => ({ ...prev, [lineId]: data.data }))
+        } catch (error) {
+            console.error(error)
+        }
+    }
+
+    const handleCreateUqt = async () => {
+        if (!uqtTargetLine) return
+        if (!uqtForm.usedQuantity || uqtForm.usedQuantity <= 0) {
+            return alert('Vui lòng nhập số lượng sử dụng hợp lệ')
+        }
+
+        // Client-side: kiểm tra tổng không vượt quá quantity của line
+        const lineQty = uqtTargetLine.quantity || 0
+        const existingTxns = uqtTransactions[uqtTargetLine._id] || []
+        const totalUsed = existingTxns.reduce(
+            (sum, t) => sum + (t.usedQuantity || 0),
+            0
+        )
+        const remaining = lineQty - totalUsed
+        if (uqtForm.usedQuantity > remaining) {
+            return alert(
+                `Số lượng vượt quá giới hạn!\nĐã sử dụng: ${Intl.NumberFormat().format(totalUsed)}\nSố lượng đơn: ${Intl.NumberFormat().format(lineQty)}\nCòn lại: ${Intl.NumberFormat().format(remaining)}`
+            )
+        }
+
+        try {
+            setUqtSubmitting(true)
+            await axios.post('/api/create-used-qty-transaction', {
+                purchase_order_line_id: uqtTargetLine._id,
+                usedQuantity: uqtForm.usedQuantity,
+                usedDate: uqtForm.usedDate ? uqtForm.usedDate.toDate() : null,
+                usedForContractId: uqtForm.usedForContractId || null,
+            })
+            await fetchUqtByLine(uqtTargetLine._id)
+            setUqtModalVisible(false)
+            setUqtForm({
+                usedQuantity: null,
+                usedDate: null,
+                usedForContractId: null,
+            })
+            setUqtTargetLine(null)
+        } catch (error) {
+            console.error(error)
+            alert(error?.response?.data?.msg || 'Lỗi khi tạo giao dịch')
+        } finally {
+            setUqtSubmitting(false)
+        }
+    }
+
+    const handleDeleteUqt = async (id, lineId) => {
+        if (!window.confirm('Bạn có chắc muốn xóa?')) return
+        try {
+            await axios.delete(`/api/delete-used-qty-transaction/${id}`)
+            setUqtTransactions((prev) => ({
+                ...prev,
+                [lineId]: (prev[lineId] || []).filter((t) => t._id !== id),
+            }))
+        } catch (error) {
+            console.error(error)
+            alert('Lỗi khi xóa giao dịch')
+        }
+    }
+
+    const handleUpdateUqt = async () => {
+        if (!uqtEditTarget) return
+        if (!uqtEditForm.usedQuantity || uqtEditForm.usedQuantity <= 0) {
+            return alert('Vui lòng nhập số lượng sử dụng hợp lệ')
+        }
+
+        // Client-side validation: tổng (các record khác) + giá trị mới <= line.quantity
+        const lineId =
+            uqtEditTarget.purchase_order_line_id?._id ||
+            uqtEditTarget.purchase_order_line_id
+        const existingTxns = (uqtTransactions[lineId] || []).filter(
+            (t) => t._id !== uqtEditTarget._id
+        )
+        // Lấy quantity của line từ trackerData
+        const lineRecord = trackerData.find((l) => l._id === lineId)
+        const lineQty = lineRecord?.quantity || 0
+        const otherTotal = existingTxns.reduce(
+            (s, t) => s + (t.usedQuantity || 0),
+            0
+        )
+        if (otherTotal + uqtEditForm.usedQuantity > lineQty) {
+            return alert(
+                `Số lượng vượt quá giới hạn!\nCác record khác đã dùng: ${Intl.NumberFormat().format(otherTotal)}\nSố lượng đơn: ${Intl.NumberFormat().format(lineQty)}\nTối đa có thể nhập: ${Intl.NumberFormat().format(lineQty - otherTotal)}`
+            )
+        }
+
+        try {
+            setUqtEditSubmitting(true)
+            await axios.patch(
+                `/api/update-used-qty-transaction/${uqtEditTarget._id}`,
+                {
+                    usedQuantity: uqtEditForm.usedQuantity,
+                    usedDate: uqtEditForm.usedDate
+                        ? uqtEditForm.usedDate.toDate()
+                        : null,
+                    usedForContractId: uqtEditForm.usedForContractId || null,
+                }
+            )
+            await fetchUqtByLine(lineId)
+            setUqtEditModalVisible(false)
+            setUqtEditTarget(null)
+        } catch (error) {
+            console.error(error)
+            alert(error?.response?.data?.msg || 'Lỗi khi cập nhật giao dịch')
+        } finally {
+            setUqtEditSubmitting(false)
+        }
+    }
 
     const getPos = async (id = false) => {
         try {
-            const { data } = await axios.get('/api/get-pos')
-            setPoState(data.data)
+            const { data } = await axios.get('/api/get-pos?is_backup=true')
+            setBackupPoState(data.data)
             setData(data.data)
 
             if (showDrawer) {
@@ -95,9 +308,7 @@ const PurchaseOrder = () => {
         try {
             if (window.confirm('Bạn có thực sự muốn xóa ?')) {
                 await axios.delete(`/api/delete-po/${record._id}`)
-                const { data } = await axios.get('/api/get-pos')
-                setPoState(data.data)
-                setData(data.data)
+                await getPos()
                 alert('Đã xóa thành công!')
             }
         } catch (error) {
@@ -662,7 +873,7 @@ const PurchaseOrder = () => {
                     >
                         <MdEdit />
                     </Button>
-                    <Tooltip title="In đề nghị mua hàng">
+                    <Tooltip title="In đề nghị mua hàng dự phòng">
                         <Button
                             onClick={() => handlePrint(record, false)}
                             size="small"
@@ -671,7 +882,7 @@ const PurchaseOrder = () => {
                             <IoPrint />
                         </Button>
                     </Tooltip>
-                    <Tooltip title="In đơn mua hàng">
+                    <Tooltip title="In đơn mua hàng dự phòng">
                         <Button
                             type="primary"
                             onClick={() => handlePrint(record, true)}
@@ -704,72 +915,1076 @@ const PurchaseOrder = () => {
     }
 
     useEffect(() => {
-        setData(pos)
-    }, [])
+        setData(backup_pos)
+    }, [backup_pos])
+
+    const distinctColumns = [
+        {
+            title: 'Khách hàng',
+            dataIndex: 'buyer',
+            key: 'buyer',
+            render: (val) => val?.name || '-',
+        },
+        {
+            title: 'Mặt hàng',
+            dataIndex: 'bundle',
+            key: 'bundle',
+            render: (val) => val?.name || '-',
+        },
+        {
+            title: 'Brand',
+            dataIndex: 'brand',
+            key: 'brand',
+            render: (val) => val?.name || '-',
+        },
+        {
+            title: 'Packing',
+            dataIndex: 'packing',
+            key: 'packing',
+            render: (val) => val?.name || '-',
+        },
+        {
+            title: 'Trạng thái',
+            key: 'status',
+            align: 'center',
+            render: (_, record) => {
+                const isFull = record.status === 'unavailable'
+                return (
+                    <Tag color={isFull ? 'warning' : 'success'}>
+                        {isFull ? 'Không có sẵn' : 'Tồn kho'}
+                    </Tag>
+                )
+            },
+        },
+    ]
+
+    const getFilteredDistinctRecords = () => {
+        const distinctMap = {}
+        trackerData.forEach((item) => {
+            const bundleId = item.bundle_id?._id || 'null'
+            const packingId = item.packing_id?._id || 'null'
+            const brandId = item.brand_id?._id || 'null'
+            const buyerId =
+                item.buyer_id?._id || item.order_id?.buyer_id || 'null'
+            const key = `${bundleId}_${packingId}_${brandId}_${buyerId}`
+
+            if (!distinctMap[key]) {
+                distinctMap[key] = {
+                    key,
+                    bundle: item.bundle_id,
+                    packing: item.packing_id,
+                    brand: item.brand_id,
+                    buyer: item.buyer_id || { _id: buyerId, name: '-' },
+                    products: {},
+                }
+            }
+            const productId = item.product_id?._id || 'unknown'
+            if (!distinctMap[key].products[productId]) {
+                distinctMap[key].products[productId] = {
+                    total_quantity: 0,
+                    lines: [],
+                }
+            }
+            distinctMap[key].products[productId].total_quantity +=
+                item.quantity || 0
+            distinctMap[key].products[productId].lines.push(item)
+        })
+
+        let result = Object.values(distinctMap).map((record) => {
+            let hasAvailable = false
+            Object.values(record.products).forEach((prodGroup) => {
+                const total_used = prodGroup.lines.reduce((sum, line) => {
+                    const txns = uqtTransactions[line._id] || []
+                    return (
+                        sum +
+                        txns.reduce((s, t) => s + (t.usedQuantity || 0), 0)
+                    )
+                }, 0)
+                if (
+                    prodGroup.total_quantity > 0 &&
+                    prodGroup.total_quantity > total_used
+                ) {
+                    hasAvailable = true
+                }
+            })
+            return {
+                ...record,
+                status: hasAvailable ? 'available' : 'unavailable',
+            }
+        })
+
+        if (appliedFilters.status !== 'all') {
+            result = result.filter(
+                (item) => item.status === appliedFilters.status
+            )
+        }
+
+        return result
+    }
+
+    const getTrackerGroupedData = () => {
+        let linesToGroup = trackerData
+        if (selectedDistinctRecord) {
+            linesToGroup = linesToGroup.filter((item) => {
+                const bundleId = item.bundle_id?._id || 'null'
+                const packingId = item.packing_id?._id || 'null'
+                const brandId = item.brand_id?._id || 'null'
+                const buyerId =
+                    item.buyer_id?._id || item.order_id?.buyer_id || 'null'
+                const rec = selectedDistinctRecord
+                const rBundleId = rec.bundle?._id || 'null'
+                const rPackingId = rec.packing?._id || 'null'
+                const rBrandId = rec.brand?._id || 'null'
+                const rBuyerId = rec.buyer?._id || 'null'
+                return (
+                    bundleId === rBundleId &&
+                    packingId === rPackingId &&
+                    brandId === rBrandId &&
+                    buyerId === rBuyerId
+                )
+            })
+        }
+
+        const grouped = {}
+        linesToGroup.forEach((item) => {
+            const productId = item.product_id?._id || 'unknown'
+            if (!grouped[productId]) {
+                grouped[productId] = {
+                    key: productId,
+                    product_name: item.product_id?.name || 'Chưa xác định',
+                    total_quantity: 0,
+                    lines: [],
+                }
+            }
+            grouped[productId].total_quantity += item.quantity || 0
+            grouped[productId].lines.push({
+                ...item,
+                key: item._id,
+            })
+        })
+
+        // Tính total_used từ uqtTransactions
+        let result = Object.values(grouped).map((group) => {
+            const total_used = group.lines.reduce((sum, line) => {
+                const txns = uqtTransactions[line._id] || []
+                return sum + txns.reduce((s, t) => s + (t.usedQuantity || 0), 0)
+            }, 0)
+            const remaining = group.total_quantity - total_used
+            return { ...group, total_used, remaining }
+        })
+
+        return result
+    }
+
+    const trackerColumns = [
+        {
+            title: 'Sản phẩm',
+            dataIndex: 'product_name',
+            key: 'product_name',
+            render: (text, record) => {
+                const isFull =
+                    record.total_quantity > 0 &&
+                    record.total_quantity <= record.total_used
+                return (
+                    <span
+                        style={{
+                            fontWeight: 'bold',
+                            color: !isFull ? '#2e7d32' : 'inherit',
+                        }}
+                    >
+                        {text}
+                    </span>
+                )
+            },
+        },
+        {
+            title: 'Tổng số lượng đơn hàng',
+            dataIndex: 'total_quantity',
+            key: 'total_quantity',
+            align: 'right',
+            render: (val) => Intl.NumberFormat().format(val),
+        },
+        {
+            title: 'Tổng số lượng đã sử dụng',
+            dataIndex: 'total_used',
+            key: 'total_used',
+            align: 'right',
+            render: (val) => Intl.NumberFormat().format(val),
+        },
+        {
+            title: 'Tổng số lượng còn lại',
+            dataIndex: 'remaining',
+            key: 'remaining',
+            align: 'right',
+            render: (val) => Intl.NumberFormat().format(val),
+        },
+        {
+            title: 'Trạng thái',
+            key: 'status',
+            align: 'center',
+            render: (_, record) => {
+                const isFull =
+                    record.total_quantity > 0 &&
+                    record.total_quantity <= record.total_used
+                return (
+                    <Tag color={isFull ? 'warning' : 'success'}>
+                        {isFull ? 'Không có sẵn' : 'Tồn kho'}
+                    </Tag>
+                )
+            },
+        },
+    ]
+
+    const expandedRowRender = (record) => {
+        const lineColumns = [
+            {
+                title: 'Mã đơn hàng',
+                dataIndex: 'order_id',
+                key: 'order',
+                render: (po) => po?.name,
+            },
+            {
+                title: 'Ngày đặt hàng',
+                dataIndex: 'order_id',
+                key: 'date_ordered',
+                render: (po) =>
+                    po?.date_ordered
+                        ? dayjs(po.date_ordered).format('DD/MM/YYYY')
+                        : '-',
+            },
+            {
+                title: 'Ngày giao hàng',
+                dataIndex: 'order_id',
+                key: 'date_deliveried',
+                render: (po) =>
+                    po?.date_deliveried
+                        ? dayjs(po.date_deliveried).format('DD/MM/YYYY')
+                        : '-',
+            },
+            {
+                title: 'Số lượng đơn hàng',
+                dataIndex: 'quantity',
+                key: 'quantity',
+                align: 'right',
+                render: (val) => Intl.NumberFormat().format(val),
+            },
+            {
+                title: 'Số lượng đã sử dụng',
+                key: 'line_used_qty',
+                align: 'right',
+                render: (_, row) => {
+                    const txns = uqtTransactions[row._id] || []
+                    const total = txns.reduce(
+                        (s, t) => s + (t.usedQuantity || 0),
+                        0
+                    )
+                    return Intl.NumberFormat().format(total)
+                },
+            },
+            {
+                title: 'Danh sách Hợp đồng',
+                dataIndex: 'contract_id',
+                key: 'contract_list',
+                render: (vals) => {
+                    if (!vals || vals.length === 0) return <span>-</span>
+                    return (
+                        <span>
+                            {vals.map((v) => {
+                                const code = v?.code || v
+                                return (
+                                    <Tag key={v?._id || v} color="blue">
+                                        {code}
+                                    </Tag>
+                                )
+                            })}
+                        </span>
+                    )
+                },
+            },
+            {
+                title: 'Hành động',
+                key: 'line_action',
+                align: 'center',
+                width: 90,
+                render: (_, row) => (
+                    <Button
+                        size="small"
+                        type="primary"
+                        icon={<FaCirclePlus />}
+                        onClick={() => {
+                            setUqtTargetLine(row)
+                            setUqtForm({
+                                usedQuantity: null,
+                                usedDate: null,
+                                usedForContractId: null,
+                            })
+                            if (!uqtTransactions[row._id]) {
+                                fetchUqtByLine(row._id)
+                            }
+                            setUqtModalVisible(true)
+                        }}
+                    >
+                        Tạo
+                    </Button>
+                ),
+            },
+        ]
+
+        const transactionColumns = [
+            {
+                key: 'label',
+                width: 40,
+                render: () => null,
+            },
+            {
+                title: 'Ngày sử dụng',
+                dataIndex: 'usedDate',
+                key: 'usedDate',
+                render: (val) => (val ? dayjs(val).format('DD/MM/YYYY') : '-'),
+            },
+            {
+                title: 'Hợp đồng sử dụng',
+                dataIndex: 'usedForContractId',
+                key: 'usedForContractId',
+                render: (val) => (val ? <Tag>{val.code}</Tag> : <span>-</span>),
+            },
+            {
+                title: 'Số lượng sử dụng',
+                dataIndex: 'usedQuantity',
+                key: 'usedQuantity',
+                render: (val) => Intl.NumberFormat().format(val),
+            },
+            {
+                title: '',
+                key: 'txn_action',
+                align: 'center',
+                width: 90,
+                render: (_, txn) => (
+                    <Space>
+                        <Button
+                            size="small"
+                            icon={<EditFilled />}
+                            onClick={() => {
+                                setUqtEditTarget(txn)
+                                setUqtEditForm({
+                                    usedQuantity: txn.usedQuantity ?? null,
+                                    usedDate: txn.usedDate
+                                        ? dayjs(txn.usedDate)
+                                        : null,
+                                    usedForContractId:
+                                        txn.usedForContractId?._id ||
+                                        txn.usedForContractId ||
+                                        null,
+                                })
+                                setUqtEditModalVisible(true)
+                            }}
+                        />
+                        <Button
+                            size="small"
+                            danger
+                            icon={<DeleteFilled />}
+                            onClick={() =>
+                                handleDeleteUqt(
+                                    txn._id,
+                                    txn.purchase_order_line_id
+                                )
+                            }
+                        />
+                    </Space>
+                ),
+            },
+        ]
+
+        const innerExpandedRowRender = (lineRow) => {
+            const txns = uqtTransactions[lineRow._id] || []
+            if (txns.length === 0) {
+                return (
+                    <div
+                        style={{
+                            padding: '8px 16px',
+                            color: '#999',
+                            fontStyle: 'italic',
+                        }}
+                    >
+                        Chưa có giao dịch nào
+                    </div>
+                )
+            }
+            return (
+                <Table
+                    columns={transactionColumns}
+                    dataSource={txns.map((t) => ({ ...t, key: t._id }))}
+                    pagination={false}
+                    size="small"
+                    showHeader
+                    style={{ marginLeft: 48 }}
+                />
+            )
+        }
+
+        return (
+            <Table
+                columns={lineColumns}
+                dataSource={record.lines}
+                pagination={false}
+                size="small"
+                rowKey="_id"
+                expandable={{
+                    expandedRowRender: innerExpandedRowRender,
+                    onExpand: (expanded, lineRow) => {
+                        if (expanded) fetchUqtByLine(lineRow._id)
+                    },
+                }}
+            />
+        )
+    }
 
     return (
         <div>
-            <Space>
-                <Button
-                    type="primary"
-                    onClick={() => setShowDrawer(true)}
-                    style={{ marginBottom: 16 }}
-                >
-                    Tạo
-                </Button>
-                <div>
-                    <input
-                        type="file"
-                        ref={fileInputReceiptRef}
-                        style={{ display: 'none' }}
-                        onChange={handleImportReceiptDate}
-                    />
-                    <Button
-                        onClick={() => {
-                            fileInputReceiptRef.current.click()
+            {/* Modal tạo giao dịch sử dụng */}
+            <Modal
+                title="Tạo giao dịch sử dụng"
+                open={uqtModalVisible}
+                onOk={handleCreateUqt}
+                onCancel={() => {
+                    setUqtModalVisible(false)
+                    setUqtForm({
+                        usedQuantity: null,
+                        usedDate: null,
+                        usedForContractId: null,
+                    })
+                    setUqtTargetLine(null)
+                }}
+                confirmLoading={uqtSubmitting}
+                okText="Tạo"
+                cancelText="Hủy"
+            >
+                {uqtTargetLine &&
+                    (() => {
+                        const lineQty = uqtTargetLine.quantity || 0
+                        const existingTxns =
+                            uqtTransactions[uqtTargetLine._id] || []
+                        const totalUsed = existingTxns.reduce(
+                            (sum, t) => sum + (t.usedQuantity || 0),
+                            0
+                        )
+                        const remaining = lineQty - totalUsed
+                        return (
+                            <div
+                                style={{
+                                    background:
+                                        remaining <= 0 ? '#fff1f0' : '#f6ffed',
+                                    border: `1px solid ${remaining <= 0 ? '#ffa39e' : '#b7eb8f'}`,
+                                    borderRadius: 6,
+                                    padding: '8px 12px',
+                                    marginBottom: 16,
+                                    display: 'flex',
+                                    gap: 24,
+                                    fontSize: 13,
+                                }}
+                            >
+                                <span>
+                                    <strong>Số lượng đơn:</strong>{' '}
+                                    {Intl.NumberFormat().format(lineQty)}
+                                </span>
+                                <span>
+                                    <strong>Đã sử dụng:</strong>{' '}
+                                    {Intl.NumberFormat().format(totalUsed)}
+                                </span>
+                                <span
+                                    style={{
+                                        color:
+                                            remaining <= 0
+                                                ? '#cf1322'
+                                                : '#389e0d',
+                                        fontWeight: 'bold',
+                                    }}
+                                >
+                                    <strong>Còn lại:</strong>{' '}
+                                    {Intl.NumberFormat().format(remaining)}
+                                </span>
+                            </div>
+                        )
+                    })()}
+                <Form layout="vertical">
+                    <Form.Item label="Số lượng sử dụng" required>
+                        <InputNumber
+                            style={{ width: '100%' }}
+                            min={0}
+                            max={(() => {
+                                if (!uqtTargetLine) return undefined
+                                const lineQty = uqtTargetLine.quantity || 0
+                                const existingTxns =
+                                    uqtTransactions[uqtTargetLine._id] || []
+                                const totalUsed = existingTxns.reduce(
+                                    (sum, t) => sum + (t.usedQuantity || 0),
+                                    0
+                                )
+                                return lineQty - totalUsed
+                            })()}
+                            value={uqtForm.usedQuantity}
+                            onChange={(val) =>
+                                setUqtForm((f) => ({ ...f, usedQuantity: val }))
+                            }
+                        />
+                    </Form.Item>
+                    <Form.Item label="Ngày sử dụng">
+                        <DatePicker
+                            style={{ width: '100%' }}
+                            format="DD/MM/YYYY"
+                            value={uqtForm.usedDate}
+                            onChange={(date) =>
+                                setUqtForm((f) => ({ ...f, usedDate: date }))
+                            }
+                        />
+                    </Form.Item>
+                    <Form.Item label="Sử dụng cho hợp đồng">
+                        <Select
+                            style={{ width: '100%' }}
+                            placeholder="Chọn hợp đồng"
+                            prefix={
+                                <Button
+                                    size="small"
+                                    color="primary"
+                                    variant="solid"
+                                    onClick={() =>
+                                        setOpenMyContractDrawer(true)
+                                    }
+                                >
+                                    <FaCirclePlus />
+                                </Button>
+                            }
+                            allowClear
+                            showSearch
+                            value={uqtForm.usedForContractId}
+                            onChange={(val) =>
+                                setUqtForm((f) => ({
+                                    ...f,
+                                    usedForContractId: val,
+                                }))
+                            }
+                            options={contracts.map((c) => ({
+                                label: c.code,
+                                value: c._id,
+                            }))}
+                            filterOption={(input, option) =>
+                                (option?.label ?? '')
+                                    .toLowerCase()
+                                    .includes(input.toLowerCase())
+                            }
+                        />
+                    </Form.Item>
+                </Form>
+            </Modal>
+
+            {/* Modal chỉnh sửa giao dịch sử dụng */}
+            <Modal
+                title="Chỉnh sửa giao dịch sử dụng"
+                open={uqtEditModalVisible}
+                onOk={handleUpdateUqt}
+                onCancel={() => {
+                    setUqtEditModalVisible(false)
+                    setUqtEditTarget(null)
+                }}
+                confirmLoading={uqtEditSubmitting}
+                okText="Lưu"
+                cancelText="Hủy"
+            >
+                {uqtEditTarget &&
+                    (() => {
+                        const lineId =
+                            uqtEditTarget.purchase_order_line_id?._id ||
+                            uqtEditTarget.purchase_order_line_id
+                        const lineRecord = trackerData.find(
+                            (l) => l._id === lineId
+                        )
+                        const lineQty = lineRecord?.quantity || 0
+                        const otherTxns = (
+                            uqtTransactions[lineId] || []
+                        ).filter((t) => t._id !== uqtEditTarget._id)
+                        const otherTotal = otherTxns.reduce(
+                            (s, t) => s + (t.usedQuantity || 0),
+                            0
+                        )
+                        const remaining = lineQty - otherTotal
+                        return (
+                            <div
+                                style={{
+                                    background:
+                                        remaining <= 0 ? '#fff1f0' : '#f6ffed',
+                                    border: `1px solid ${remaining <= 0 ? '#ffa39e' : '#b7eb8f'}`,
+                                    borderRadius: 6,
+                                    padding: '8px 12px',
+                                    marginBottom: 16,
+                                    display: 'flex',
+                                    gap: 24,
+                                    fontSize: 13,
+                                }}
+                            >
+                                <span>
+                                    <strong>Số lượng đơn:</strong>{' '}
+                                    {Intl.NumberFormat().format(lineQty)}
+                                </span>
+                                <span>
+                                    <strong>Các record khác:</strong>{' '}
+                                    {Intl.NumberFormat().format(otherTotal)}
+                                </span>
+                                <span
+                                    style={{
+                                        color:
+                                            remaining <= 0
+                                                ? '#cf1322'
+                                                : '#389e0d',
+                                        fontWeight: 'bold',
+                                    }}
+                                >
+                                    <strong>Tối đa:</strong>{' '}
+                                    {Intl.NumberFormat().format(remaining)}
+                                </span>
+                            </div>
+                        )
+                    })()}
+                <Form layout="vertical">
+                    <Form.Item label="Số lượng sử dụng" required>
+                        <InputNumber
+                            style={{ width: '100%' }}
+                            min={0}
+                            max={(() => {
+                                if (!uqtEditTarget) return undefined
+                                const lineId =
+                                    uqtEditTarget.purchase_order_line_id?._id ||
+                                    uqtEditTarget.purchase_order_line_id
+                                const lineRecord = trackerData.find(
+                                    (l) => l._id === lineId
+                                )
+                                const lineQty = lineRecord?.quantity || 0
+                                const otherTxns = (
+                                    uqtTransactions[lineId] || []
+                                ).filter((t) => t._id !== uqtEditTarget._id)
+                                const otherTotal = otherTxns.reduce(
+                                    (s, t) => s + (t.usedQuantity || 0),
+                                    0
+                                )
+                                return lineQty - otherTotal
+                            })()}
+                            value={uqtEditForm.usedQuantity}
+                            onChange={(val) =>
+                                setUqtEditForm((f) => ({
+                                    ...f,
+                                    usedQuantity: val,
+                                }))
+                            }
+                        />
+                    </Form.Item>
+                    <Form.Item label="Ngày sử dụng">
+                        <DatePicker
+                            style={{ width: '100%' }}
+                            format="DD/MM/YYYY"
+                            value={uqtEditForm.usedDate}
+                            onChange={(date) =>
+                                setUqtEditForm((f) => ({
+                                    ...f,
+                                    usedDate: date,
+                                }))
+                            }
+                        />
+                    </Form.Item>
+                    <Form.Item label="Sử dụng cho hợp đồng">
+                        <Select
+                            style={{ width: '100%' }}
+                            placeholder="Chọn hợp đồng"
+                            allowClear
+                            prefix={
+                                <Button
+                                    size="small"
+                                    color="primary"
+                                    variant="solid"
+                                    onClick={() =>
+                                        setOpenMyContractDrawer(true)
+                                    }
+                                >
+                                    <FaCirclePlus />
+                                </Button>
+                            }
+                            showSearch
+                            value={uqtEditForm.usedForContractId}
+                            onChange={(val) =>
+                                setUqtEditForm((f) => ({
+                                    ...f,
+                                    usedForContractId: val,
+                                }))
+                            }
+                            options={contracts.map((c) => ({
+                                label: c.code,
+                                value: c._id,
+                            }))}
+                            filterOption={(input, option) =>
+                                (option?.label ?? '')
+                                    .toLowerCase()
+                                    .includes(input.toLowerCase())
+                            }
+                        />
+                    </Form.Item>
+                </Form>
+            </Modal>
+            <Tabs defaultActiveKey="input" type="card">
+                <Tabs.TabPane tab="Input" key="input">
+                    <div
+                        style={{
+                            background: '#fff',
+                            padding: '20px',
+                            borderRadius: '8px',
                         }}
-                        style={{ marginBottom: 16 }}
                     >
-                        Import ngày nhập kho
-                    </Button>
-                </div>
-                {selectedRowKeys.length > 0 && (
-                    <Button
-                        onClick={handleExportSummaryFile}
-                        style={{ marginBottom: 16 }}
+                        <Space>
+                            <Button
+                                type="primary"
+                                onClick={() => setShowDrawer(true)}
+                                style={{ marginBottom: 16 }}
+                            >
+                                Tạo đơn dự phòng
+                            </Button>
+                            <div>
+                                <input
+                                    type="file"
+                                    ref={fileInputReceiptRef}
+                                    style={{ display: 'none' }}
+                                    onChange={handleImportReceiptDate}
+                                />
+                                <Button
+                                    onClick={() => {
+                                        fileInputReceiptRef.current.click()
+                                    }}
+                                    style={{ marginBottom: 16 }}
+                                >
+                                    Import ngày nhập kho
+                                </Button>
+                            </div>
+                            {selectedRowKeys.length > 0 && (
+                                <Button
+                                    onClick={handleExportSummaryFile}
+                                    style={{ marginBottom: 16 }}
+                                >
+                                    Xuất file tổng hợp
+                                </Button>
+                            )}
+                        </Space>
+                        <Table
+                            columns={columns}
+                            rowSelection={rowSelection}
+                            size="small"
+                            rowKey={(record) => record._id}
+                            pagination={{
+                                defaultPageSize: 15,
+                                showSizeChanger: true,
+                            }}
+                            scroll={{ x: 'max-content' }}
+                            dataSource={getFilteredData().map((i) => {
+                                let contractString = ''
+                                const contractList = i.contract_id
+                                for (let k = 0; k < contractList.length; k++) {
+                                    if (k === contractList.length - 1) {
+                                        contractString =
+                                            contractString +
+                                            contractList[k]?.code
+                                    } else {
+                                        contractString =
+                                            contractString +
+                                            contractList[k]?.code +
+                                            ', '
+                                    }
+                                }
+                                return {
+                                    ...i,
+                                    partner: i?.partner_id?.short_name,
+                                    pr: i?.pr_id?.name,
+                                    buyer: i?.buyer_id?.name,
+                                    contract: contractString,
+                                }
+                            })}
+                        />
+                    </div>
+                </Tabs.TabPane>
+                <Tabs.TabPane tab="Output" key="output">
+                    <div
+                        style={{
+                            background: '#fff',
+                            padding: '20px',
+                            borderRadius: '8px',
+                        }}
                     >
-                        Xuất file tổng hợp
-                    </Button>
-                )}
-            </Space>
-            <Table
-                columns={columns}
-                rowSelection={rowSelection}
-                size="small"
-                rowKey={(record) => record._id}
-                pagination={{ defaultPageSize: 15, showSizeChanger: true }}
-                scroll={{ x: 'max-content' }}
-                dataSource={getFilteredData().map((i) => {
-                    let contractString = ''
-                    const contractList = i.contract_id
-                    for (let k = 0; k < contractList.length; k++) {
-                        if (k === contractList.length - 1) {
-                            contractString =
-                                contractString + contractList[k]?.code
-                        } else {
-                            contractString =
-                                contractString + contractList[k]?.code + ', '
-                        }
-                    }
-                    return {
-                        ...i,
-                        partner: i?.partner_id?.short_name,
-                        pr: i?.pr_id?.name,
-                        buyer: i?.buyer_id?.name,
-                        contract: contractString,
-                    }
-                })}
-            />
+                        <div
+                            style={{
+                                display: 'flex',
+                                alignItems: 'flex-end',
+                                gap: '16px',
+                                marginBottom: '24px',
+                                flexWrap: 'wrap',
+                            }}
+                        >
+                            <div style={{ flex: 1, minWidth: '200px' }}>
+                                <div
+                                    style={{
+                                        fontSize: '11px',
+                                        fontWeight: 'bold',
+                                        color: '#8c8c8c',
+                                        marginBottom: '8px',
+                                        textTransform: 'uppercase',
+                                    }}
+                                >
+                                    Khách hàng
+                                </div>
+                                <Select
+                                    style={{ width: '100%' }}
+                                    placeholder="Chọn khách hàng"
+                                    value={trackerFilters.buyer_id}
+                                    onChange={(val) =>
+                                        setTrackerFilters({
+                                            ...trackerFilters,
+                                            buyer_id: val,
+                                        })
+                                    }
+                                    showSearch
+                                    filterOption={(input, option) =>
+                                        (option?.label ?? '')
+                                            .toLowerCase()
+                                            .includes(input.toLowerCase())
+                                    }
+                                    options={[
+                                        {
+                                            value: 'all',
+                                            label: 'Tất cả khách hàng',
+                                        },
+                                        ...partners.map((p) => ({
+                                            value: p._id,
+                                            label: p.name,
+                                        })),
+                                    ]}
+                                />
+                            </div>
+                            <div style={{ flex: 1, minWidth: '200px' }}>
+                                <div
+                                    style={{
+                                        fontSize: '11px',
+                                        fontWeight: 'bold',
+                                        color: '#8c8c8c',
+                                        marginBottom: '8px',
+                                        textTransform: 'uppercase',
+                                    }}
+                                >
+                                    Mặt hàng
+                                </div>
+                                <Select
+                                    style={{ width: '100%' }}
+                                    placeholder="Chọn mặt hàng"
+                                    value={trackerFilters.bundle_id}
+                                    onChange={(val) =>
+                                        setTrackerFilters({
+                                            ...trackerFilters,
+                                            bundle_id: val,
+                                        })
+                                    }
+                                    showSearch
+                                    filterOption={(input, option) =>
+                                        (option?.label ?? '')
+                                            .toLowerCase()
+                                            .includes(input.toLowerCase())
+                                    }
+                                    options={[
+                                        {
+                                            value: 'all',
+                                            label: 'Tất cả mặt hàng',
+                                        },
+                                        ...bundles.map((b) => ({
+                                            value: b._id,
+                                            label: b.name,
+                                        })),
+                                    ]}
+                                />
+                            </div>
+                            <div style={{ flex: 1, minWidth: '200px' }}>
+                                <div
+                                    style={{
+                                        fontSize: '11px',
+                                        fontWeight: 'bold',
+                                        color: '#8c8c8c',
+                                        marginBottom: '8px',
+                                        textTransform: 'uppercase',
+                                    }}
+                                >
+                                    Brand
+                                </div>
+                                <Select
+                                    style={{ width: '100%' }}
+                                    placeholder="Chọn brand"
+                                    value={trackerFilters.brand_id}
+                                    onChange={(val) =>
+                                        setTrackerFilters({
+                                            ...trackerFilters,
+                                            brand_id: val,
+                                        })
+                                    }
+                                    showSearch
+                                    filterOption={(input, option) =>
+                                        (option?.label ?? '')
+                                            .toLowerCase()
+                                            .includes(input.toLowerCase())
+                                    }
+                                    options={[
+                                        { value: 'all', label: 'Tất cả brand' },
+                                        ...brands.map((b) => ({
+                                            value: b._id,
+                                            label: b.name,
+                                        })),
+                                    ]}
+                                />
+                            </div>
+                            <div style={{ flex: 1, minWidth: '200px' }}>
+                                <div
+                                    style={{
+                                        fontSize: '11px',
+                                        fontWeight: 'bold',
+                                        color: '#8c8c8c',
+                                        marginBottom: '8px',
+                                        textTransform: 'uppercase',
+                                    }}
+                                >
+                                    Packing
+                                </div>
+                                <Select
+                                    style={{ width: '100%' }}
+                                    placeholder="Chọn packing"
+                                    value={trackerFilters.packing_id}
+                                    onChange={(val) =>
+                                        setTrackerFilters({
+                                            ...trackerFilters,
+                                            packing_id: val,
+                                        })
+                                    }
+                                    showSearch
+                                    filterOption={(input, option) =>
+                                        (option?.label ?? '')
+                                            .toLowerCase()
+                                            .includes(input.toLowerCase())
+                                    }
+                                    options={[
+                                        {
+                                            value: 'all',
+                                            label: 'Tất cả packing',
+                                        },
+                                        ...packings.map((p) => ({
+                                            value: p._id,
+                                            label: p.name,
+                                        })),
+                                    ]}
+                                />
+                            </div>
+                            <div style={{ flex: 1, minWidth: '200px' }}>
+                                <div
+                                    style={{
+                                        fontSize: '11px',
+                                        fontWeight: 'bold',
+                                        color: '#8c8c8c',
+                                        marginBottom: '8px',
+                                        textTransform: 'uppercase',
+                                    }}
+                                >
+                                    Trạng thái
+                                </div>
+                                <Select
+                                    style={{ width: '100%' }}
+                                    placeholder="Chọn trạng thái"
+                                    value={trackerFilters.status}
+                                    onChange={(val) =>
+                                        setTrackerFilters({
+                                            ...trackerFilters,
+                                            status: val,
+                                        })
+                                    }
+                                    options={[
+                                        {
+                                            value: 'all',
+                                            label: 'Tất cả trạng thái',
+                                        },
+                                        {
+                                            value: 'available',
+                                            label: 'Tồn kho',
+                                        },
+                                        {
+                                            value: 'unavailable',
+                                            label: 'Không có sẵn',
+                                        },
+                                    ]}
+                                />
+                            </div>
+                            <Button
+                                type="primary"
+                                icon={<SearchOutlined />}
+                                size="middle"
+                                onClick={fetchTrackerData}
+                                loading={trackerLoading}
+                            >
+                                Theo dõi
+                            </Button>
+                        </div>
+
+                        {/* <style>{`
+                            .tracker-table-xs .ant-table-cell {
+                                padding: 4px 8px !important;
+                                font-size: 12px !important;
+                            }
+                            .tracker-table-xs .ant-table-thead > tr > th {
+                                padding: 4px 8px !important;
+                                font-size: 11px !important;
+                            }
+                        `}</style> */}
+                        <Table
+                            className="tracker-table-xs"
+                            columns={distinctColumns}
+                            dataSource={getFilteredDistinctRecords()}
+                            size="small"
+                            pagination={false}
+                            loading={trackerLoading}
+                            onRow={(record) => ({
+                                onClick: () => {
+                                    setSelectedDistinctRecord(record)
+                                    setTrackingDetailModalVisible(true)
+                                },
+                                style: { cursor: 'pointer' },
+                            })}
+                        />
+                        <Modal
+                            title="Chi tiết theo dõi"
+                            open={trackingDetailModalVisible}
+                            onCancel={() => {
+                                setTrackingDetailModalVisible(false)
+                                setSelectedDistinctRecord(null)
+                            }}
+                            footer={null}
+                            width={1000}
+                        >
+                            <Table
+                                className="tracker-table-xs"
+                                columns={trackerColumns}
+                                dataSource={getTrackerGroupedData()}
+                                expandable={{
+                                    expandedRowRender,
+                                }}
+                                size="small"
+                                pagination={false}
+                                loading={trackerLoading}
+                            />
+                        </Modal>
+                    </div>
+                </Tabs.TabPane>
+            </Tabs>
+            {openMyContractDrawer && (
+                <MyContractDrawer
+                    open={openMyContractDrawer}
+                    onClose={() => setOpenMyContractDrawer(false)}
+                    getContracts={getContracts}
+                />
+            )}
             {showDrawer && (
                 <MyDrawer
                     open={showDrawer}
@@ -781,7 +1996,7 @@ const PurchaseOrder = () => {
     )
 }
 
-export default PurchaseOrder
+export default BackupPurchaseOrder
 
 const MyDrawer = ({ open, onClose, getPos }) => {
     const [form] = Form.useForm()
@@ -890,6 +2105,7 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                     active,
                     contract_id,
                     buyer_id,
+                    is_backup: true,
                 })
             } else {
                 const { data } = await axios.post('/api/create-po', {
@@ -904,6 +2120,7 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                     date_ordered,
                     contract_id,
                     buyer_id,
+                    is_backup: true,
                 })
                 po_id_created = data?.data?._id
             }
@@ -922,9 +2139,9 @@ const MyDrawer = ({ open, onClose, getPos }) => {
     const handleDuplicate = async () => {
         try {
             if (!open?._id)
-                return alert('Chỉ có thể nhân bản đơn mua hàng đã lưu')
+                return alert('Chỉ có thể nhân bản đơn dự phòng đã lưu')
 
-            if (!window.confirm('Bạn có chắc muốn nhân bản đơn mua hàng này?'))
+            if (!window.confirm('Bạn có chắc muốn nhân bản đơn dự phòng này?'))
                 return
 
             const {
@@ -965,6 +2182,7 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                 date_ordered,
                 contract_id,
                 buyer_id,
+                is_backup: true,
             })
             let po_id_created = data?.data?._id
             if (po_id_created) {
@@ -1322,7 +2540,9 @@ const MyDrawer = ({ open, onClose, getPos }) => {
 
     return (
         <Drawer
-            title={open?._id ? 'Chỉnh sửa' : 'Tạo mới'}
+            title={
+                open?._id ? 'Chỉnh sửa đơn dự phòng' : 'Tạo mới đơn dự phòng'
+            }
             closable={{ 'aria-label': 'Close Button' }}
             onClose={onClose}
             open={open}
@@ -1367,14 +2587,14 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                     <Form.Item
                         style={{ flex: 1 }}
                         name="pr_name"
-                        label="Mã đề nghị mua hàng"
+                        label="Mã đề nghị mua hàng dự phòng"
                     >
                         <Input className="w-full" disabled={!open?._id} />
                     </Form.Item>
                     <Form.Item
                         style={{ flex: 1 }}
                         name="name"
-                        label="Mã đơn mua hàng"
+                        label="Mã đơn mua hàng dự phòng"
                     >
                         <Input className="w-full" disabled={!open?._id} />
                     </Form.Item>
@@ -1719,7 +2939,6 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                         uom: i?.uom_id?.name,
                         buyer: i?.buyer_id?.name,
                         contract: contractString,
-                        contract: contractString,
                         sl_can_them: i.contract_quantity - i.kho_tong,
                         brand: i?.brand_id?.name,
                         bundle: i?.bundle_id?.name,
@@ -1769,8 +2988,8 @@ const MyPurchaseRequestLineDrawer = ({
         brands,
         bundles,
         packings,
-        setBundleState,
         setBrandState,
+        setBundleState,
         setPackingState,
     } = useZustand()
     const [openMyProductDrawer, setOpenMyProductDrawer] = useState(false)
@@ -1834,8 +3053,10 @@ const MyPurchaseRequestLineDrawer = ({
                 bundle_id,
                 packing_id,
             } = form.getFieldsValue()
-            if (!product_id)
-                return alert('Vui lòng nhập đầy đủ thông tin bắt buộc')
+            if (!product_id || !packing_id)
+                return alert(
+                    'Vui lòng nhập đầy đủ thông tin bắt buộc (sản phẩm, quy cách đóng gói)'
+                )
 
             setLoading(true)
 
@@ -2265,22 +3486,20 @@ const MyPurchaseRequestLineDrawer = ({
                                     value: i._id,
                                     label: i.name,
                                 }))}
-                                onChange={(value) => {
-                                    const selectedBundle = bundles.find(
-                                        (b) => b._id === value
-                                    )
-                                    if (selectedBundle) {
-                                        form.setFieldValue(
-                                            'bundle_quy_cach',
-                                            selectedBundle.quy_cach
-                                        )
-                                    }
-                                }}
                             />
                         </Form.Item>
                     </Col>
                     <Col span={8}>
-                        <Form.Item name="packing_id" label="Packing">
+                        <Form.Item
+                            name="packing_id"
+                            label="Packing"
+                            rules={[
+                                {
+                                    required: true,
+                                    message: 'Hãy chọn quy cách đóng gói',
+                                },
+                            ]}
+                        >
                             <Select
                                 allowClear
                                 showSearch

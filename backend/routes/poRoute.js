@@ -12,6 +12,7 @@ router.get('/get-pr-sequences', poController.getPurchaseRequestSequences)
 router.get('/get-pr-lines/:order_id', poController.getPurchaseRequestLines)
 router.get('/get-pos', poController.getPurchaseOrders)
 router.get('/get-po-lines/:order_id', poController.getPurchaseOrderLines)
+router.get('/get-po-tracker', poController.getPurchaseOrderLinesTracker)
 router.get(
     '/get-po-lines-history/:product_id',
     poController.getPurchaseOrderLinesHistory
@@ -38,5 +39,11 @@ router.post(
     '/bulk-update-po-receipt-date',
     poController.bulkUpdateReceiptDate
 )
+
+router.post('/create-used-qty-transaction', poController.createUsedQuantityTransaction)
+router.get('/get-used-qty-transactions/:line_id', poController.getUsedQuantityTransactionsByLine)
+router.get('/get-used-qty-transactions-bulk', poController.getUsedQuantityTransactionsByLines)
+router.patch('/update-used-qty-transaction/:id', poController.updateUsedQuantityTransaction)
+router.delete('/delete-used-qty-transaction/:id', poController.deleteUsedQuantityTransaction)
 
 module.exports = router

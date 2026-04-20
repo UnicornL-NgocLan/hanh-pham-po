@@ -3,6 +3,9 @@ const Products = require('../model/product.js')
 const Uoms = require('../model/uom.js')
 const Contracts = require('../model/contract.js')
 const PurchaseOrderLine = require('../model/purchaseOrderLine.js')
+const Brands = require('../model/brand.js')
+const Bundles = require('../model/bundle.js')
+const Packings = require('../model/packing.js')
 
 const masterDataCtrl = {
     createPartner: async (req, res) => {
@@ -209,6 +212,102 @@ const masterDataCtrl = {
                 rawData[i].latest_delivery_date = po ? po.date_deliveried : null
             }
             res.status(200).json({ data: rawData })
+        } catch (error) {
+            res.status(500).json({ msg: error.message })
+        }
+    },
+    createBrand: async (req, res) => {
+        try {
+            const { name } = req.body
+            await Brands.create({ name })
+            res.status(200).json({ msg: 'OK' })
+        } catch (error) {
+            res.status(500).json({ msg: error.message })
+        }
+    },
+    updateBrand: async (req, res) => {
+        try {
+            let parameters = { ...req.body }
+            const { id } = req.params
+
+            await Brands.findOneAndUpdate(
+                { _id: id },
+                { ...parameters },
+                { new: true }
+            )
+            res.status(200).json({ msg: 'OK' })
+        } catch (error) {
+            res.status(500).json({ msg: error.message })
+        }
+    },
+    getBrands: async (req, res) => {
+        try {
+            const data = await Brands.find({})
+            res.status(200).json({ data })
+        } catch (error) {
+            res.status(500).json({ msg: error.message })
+        }
+    },
+    createBundle: async (req, res) => {
+        try {
+            const { name, number_of_carton_per_container } = req.body
+            await Bundles.create({ name, number_of_carton_per_container })
+            res.status(200).json({ msg: 'OK' })
+        } catch (error) {
+            res.status(500).json({ msg: error.message })
+        }
+    },
+    updateBundle: async (req, res) => {
+        try {
+            let parameters = { ...req.body }
+            const { id } = req.params
+
+            await Bundles.findOneAndUpdate(
+                { _id: id },
+                { ...parameters },
+                { new: true }
+            )
+            res.status(200).json({ msg: 'OK' })
+        } catch (error) {
+            res.status(500).json({ msg: error.message })
+        }
+    },
+    getBundles: async (req, res) => {
+        try {
+            const data = await Bundles.find({})
+            res.status(200).json({ data })
+        } catch (error) {
+            res.status(500).json({ msg: error.message })
+        }
+    },
+    createPacking: async (req, res) => {
+        try {
+            const { name } = req.body
+            await Packings.create({ name })
+            res.status(200).json({ msg: 'OK' })
+        } catch (error) {
+            res.status(500).json({ msg: error.message })
+        }
+    },
+    updatePacking: async (req, res) => {
+        try {
+            let parameters = { ...req.body }
+            const { id } = req.params
+
+            await Packings.findOneAndUpdate(
+                { _id: id },
+                { ...parameters },
+                { new: true }
+            )
+            res.status(200).json({ msg: 'OK' })
+        } catch (error) {
+            res.status(500).json({ msg: error.message })
+        }
+    },
+    getPackings: async (req, res) => {
+        try {
+            const data = await Packings.find({})
+            res.status(200).json({ data })
         } catch (error) {
             res.status(500).json({ msg: error.message })
         }

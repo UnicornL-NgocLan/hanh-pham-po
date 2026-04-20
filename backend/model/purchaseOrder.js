@@ -24,6 +24,7 @@ const PurchaseOrderSchema = mongoose.Schema(
         replacedForContract: String,
         date: Date,
         date_received: Date,
+        is_backup: { type: Boolean, default: false },
     },
     { timestamps: true }
 )

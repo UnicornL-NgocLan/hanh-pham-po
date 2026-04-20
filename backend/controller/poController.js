@@ -4,6 +4,7 @@ const PurchaseRequest = require('../model/purchaseRequest.js')
 const PurchaseOrder = require('../model/purchaseOrder.js')
 const Partner = require('../model/partner.js')
 const PurchaseRequestSequence = require('../model/purchaseRequestSequence.js')
+const UsedQuantityTransaction = require('../model/usedQuantityTransaction.js')
 const moment = require('moment')
 
 const poCtrl = {
@@ -311,11 +312,11 @@ const poCtrl = {
                     to: lastDateOfThisMonth,
                 })
             }
-            const newPurchaseRequestName = `${number} /DN TS ${
+            const newPurchaseRequestName = `${number} /D${req.body.is_backup ? 'P' : 'N'} TS ${
                 plus7HoursDate.getMonth() + 1
             } ${plus7HoursDate.getFullYear()} - ${partner.code}`
 
-            const newPurchaseOrderName = `${number} /DH ${
+            const newPurchaseOrderName = `${number} /D${req.body.is_backup ? 'P' : 'H'} ${
                 plus7HoursDate.getMonth() + 1
             } ${plus7HoursDate.getFullYear()} - ${partner.code}`
 
@@ -331,6 +332,7 @@ const poCtrl = {
                 contract_id,
                 buyer_id,
                 date_ordered,
+                is_backup: req.body.is_backup || false,
             })
             res.status(200).json({
                 msg: 'Create purchase order success.',
@@ -359,7 +361,10 @@ const poCtrl = {
 
     getPurchaseOrders: async (req, res) => {
         try {
-            const data = await PurchaseOrder.find({})
+            const is_backup = req.query.is_backup === 'true'
+            const data = await PurchaseOrder.find({
+                is_backup: is_backup ? true : { $ne: true },
+            })
                 .populate('partner_id customer_id contract_id buyer_id')
                 .sort({ date_ordered: -1 })
             res.status(200).json({ data })
@@ -387,6 +392,9 @@ const poCtrl = {
                 quantity,
                 price_unit,
                 sub_total,
+                brand_id,
+                bundle_id,
+                packing_id,
             } = req.body
 
             if (!order_id || !product_id || !uom_id || !buyer_id)
@@ -411,6 +419,9 @@ const poCtrl = {
                 quantity,
                 price_unit,
                 sub_total,
+                brand_id,
+                bundle_id,
+                packing_id,
             })
 
             const listOfPols = await PurchaseOrderLine.find({ order_id })
@@ -512,7 +523,9 @@ const poCtrl = {
             const { order_id } = req.params
             const data = await PurchaseOrderLine.find({
                 order_id: order_id,
-            }).populate('product_id uom_id contract_id buyer_id')
+            }).populate(
+                'product_id uom_id contract_id buyer_id brand_id bundle_id packing_id'
+            )
 
             const respectivePurchaseOrder = await PurchaseOrder.findOne({
                 _id: order_id,
@@ -529,7 +542,9 @@ const poCtrl = {
             const data = await PurchaseOrderLine.find({
                 product_id: product_id,
             })
-                .populate('product_id uom_id buyer_id contract_id order_id')
+                .populate(
+                    'product_id uom_id buyer_id contract_id order_id brand_id bundle_id packing_id'
+                )
                 .sort({ quotation_date: -1, createdAt: -1 })
             res.status(200).json({ data })
         } catch (error) {
@@ -543,7 +558,9 @@ const poCtrl = {
             const data = await PurchaseOrderLine.find({
                 contract_id: contract_id,
             })
-                .populate('product_id uom_id buyer_id contract_id order_id')
+                .populate(
+                    'product_id uom_id buyer_id contract_id order_id brand_id bundle_id packing_id'
+                )
                 .sort({ quotation_date: -1 })
             res.status(200).json({ data })
         } catch (error) {
@@ -560,6 +577,34 @@ const poCtrl = {
             await PurchaseOrder.findOneAndDelete({ _id: id })
 
             res.status(200).json({ msg: 'OK' })
+        } catch (error) {
+            res.status(500).json({ msg: error.message })
+        }
+    },
+
+    getPurchaseOrderLinesTracker: async (req, res) => {
+        try {
+            const { buyer_id, bundle_id, brand_id, packing_id } = req.query
+            let query = {}
+
+            if (buyer_id && buyer_id !== 'all') query.buyer_id = buyer_id
+            if (bundle_id && bundle_id !== 'all') query.bundle_id = bundle_id
+            if (brand_id && brand_id !== 'all') query.brand_id = brand_id
+            if (packing_id && packing_id !== 'all') query.packing_id = packing_id
+
+            const data = await PurchaseOrderLine.find(query)
+                .populate({
+                    path: 'order_id',
+                    match: { is_backup: true },
+                })
+                .populate(
+                    'product_id bundle_id uom_id buyer_id contract_id brand_id packing_id'
+                )
+                .sort({ createdAt: -1 })
+
+            const filteredData = data.filter((item) => item.order_id)
+
+            res.status(200).json({ data: filteredData })
         } catch (error) {
             res.status(500).json({ msg: error.message })
         }
@@ -591,6 +636,152 @@ const poCtrl = {
 
             await Promise.all(updatePromises)
             res.status(200).json({ msg: 'Cập nhật ngày nhập kho thành công.' })
+        } catch (error) {
+            res.status(500).json({ msg: error.message })
+        }
+    },
+    createUsedQuantityTransaction: async (req, res) => {
+        try {
+            const {
+                purchase_order_line_id,
+                usedQuantity,
+                usedDate,
+                usedForContractId,
+            } = req.body
+            if (!purchase_order_line_id || usedQuantity === undefined) {
+                return res.status(400).json({ msg: 'Missing required fields.' })
+            }
+
+            // Validate: tổng usedQuantity không được vượt quá quantity của PO line
+            const poLine = await PurchaseOrderLine.findById(
+                purchase_order_line_id
+            )
+            if (!poLine) {
+                return res
+                    .status(400)
+                    .json({ msg: 'Purchase order line not found.' })
+            }
+
+            const existingTxns = await UsedQuantityTransaction.find({
+                purchase_order_line_id,
+            })
+            const totalUsed = existingTxns.reduce(
+                (sum, t) => sum + (t.usedQuantity || 0),
+                0
+            )
+
+            if (totalUsed + usedQuantity > (poLine.quantity || 0)) {
+                return res.status(400).json({
+                    msg: `Số lượng vượt quá giới hạn. Đã sử dụng: ${totalUsed}, Số lượng đơn: ${poLine.quantity}, Còn lại: ${poLine.quantity - totalUsed}`,
+                })
+            }
+
+            const data = await UsedQuantityTransaction.create({
+                purchase_order_line_id,
+                usedQuantity,
+                usedDate: usedDate || null,
+                usedForContractId: usedForContractId || null,
+            })
+            const populated = await UsedQuantityTransaction.findById(
+                data._id
+            ).populate('usedForContractId')
+            res.status(200).json({ msg: 'OK', data: populated })
+        } catch (error) {
+            res.status(500).json({ msg: error.message })
+        }
+    },
+
+    getUsedQuantityTransactionsByLine: async (req, res) => {
+        try {
+            const { line_id } = req.params
+            const data = await UsedQuantityTransaction.find({
+                purchase_order_line_id: line_id,
+            })
+                .populate('usedForContractId')
+                .sort({ createdAt: 1 })
+            res.status(200).json({ data })
+        } catch (error) {
+            res.status(500).json({ msg: error.message })
+        }
+    },
+
+    deleteUsedQuantityTransaction: async (req, res) => {
+        try {
+            const { id } = req.params
+            await UsedQuantityTransaction.findByIdAndDelete(id)
+            res.status(200).json({ msg: 'OK' })
+        } catch (error) {
+            res.status(500).json({ msg: error.message })
+        }
+    },
+
+    getUsedQuantityTransactionsByLines: async (req, res) => {
+        try {
+            const { line_ids } = req.query // comma-separated list of line IDs
+            if (!line_ids)
+                return res.status(400).json({ msg: 'Missing line_ids' })
+            const ids = line_ids.split(',').filter(Boolean)
+            const data = await UsedQuantityTransaction.find({
+                purchase_order_line_id: { $in: ids },
+            })
+                .populate('usedForContractId')
+                .sort({ createdAt: 1 })
+            res.status(200).json({ data })
+        } catch (error) {
+            res.status(500).json({ msg: error.message })
+        }
+    },
+
+    updateUsedQuantityTransaction: async (req, res) => {
+        try {
+            const { id } = req.params
+            const { usedQuantity, usedDate, usedForContractId } = req.body
+
+            const existing = await UsedQuantityTransaction.findById(id)
+            if (!existing)
+                return res.status(404).json({ msg: 'Record not found.' })
+
+            // Validate quantity cap (exclude self from sum)
+            if (usedQuantity !== undefined) {
+                const poLine = await PurchaseOrderLine.findById(
+                    existing.purchase_order_line_id
+                )
+                if (!poLine)
+                    return res
+                        .status(400)
+                        .json({ msg: 'Purchase order line not found.' })
+
+                const otherTxns = await UsedQuantityTransaction.find({
+                    purchase_order_line_id: existing.purchase_order_line_id,
+                    _id: { $ne: id },
+                })
+                const otherTotal = otherTxns.reduce(
+                    (sum, t) => sum + (t.usedQuantity || 0),
+                    0
+                )
+
+                if (otherTotal + usedQuantity > (poLine.quantity || 0)) {
+                    return res.status(400).json({
+                        msg: `Số lượng vượt quá giới hạn. Đã sử dụng (các record khác): ${otherTotal}, Số lượng đơn: ${poLine.quantity}, Còn lại: ${poLine.quantity - otherTotal}`,
+                    })
+                }
+            }
+
+            const updated = await UsedQuantityTransaction.findByIdAndUpdate(
+                id,
+                {
+                    ...(usedQuantity !== undefined && { usedQuantity }),
+                    ...(usedDate !== undefined && {
+                        usedDate: usedDate || null,
+                    }),
+                    ...(usedForContractId !== undefined && {
+                        usedForContractId: usedForContractId || null,
+                    }),
+                },
+                { new: true }
+            ).populate('usedForContractId')
+
+            res.status(200).json({ msg: 'OK', data: updated })
         } catch (error) {
             res.status(500).json({ msg: error.message })
         }
