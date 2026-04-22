@@ -113,7 +113,7 @@ const App = () => {
         {
             key: 10,
             icon: <IoDuplicate />,
-            label: 'Đơn dự phòng',
+            label: 'Theo dõi đơn',
             onClick: () => {
                 handleNavigate('/backup-purchase-order', 10)
             },

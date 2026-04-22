@@ -14,6 +14,7 @@ import {
     Upload,
     Row,
     Col,
+    Switch,
 } from 'antd'
 import axios from 'axios'
 import { Table, InputNumber } from 'antd'
@@ -486,6 +487,16 @@ const PurchaseOrder = () => {
             ...getColumnSearchProps('name'),
         },
         {
+            title: 'Loại đơn',
+            dataIndex: 'is_backup',
+            key: 'is_backup',
+            render: (val) => (
+                <Tag color={val ? 'orange' : 'blue'}>
+                    {val ? 'Dự phòng' : 'Thông thường'}
+                </Tag>
+            ),
+        },
+        {
             title: 'Người mua',
             dataIndex: 'buyer',
             key: 'buyer',
@@ -861,6 +872,7 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                 active,
                 contract_id,
                 buyer_id,
+                is_backup,
             } = form.getFieldsValue()
 
             if (
@@ -890,6 +902,7 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                     active,
                     contract_id,
                     buyer_id,
+                    is_backup,
                 })
             } else {
                 const { data } = await axios.post('/api/create-po', {
@@ -904,6 +917,7 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                     date_ordered,
                     contract_id,
                     buyer_id,
+                    is_backup,
                 })
                 po_id_created = data?.data?._id
             }
@@ -965,6 +979,7 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                 date_ordered,
                 contract_id,
                 buyer_id,
+                is_backup: form.getFieldValue('is_backup'),
             })
             let po_id_created = data?.data?._id
             if (po_id_created) {
@@ -1029,11 +1044,13 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                 open?.date_deliveried ? dayjs(open?.date_deliveried) : null
             )
             form.setFieldValue('delivered_to', open?.delivered_to)
+            form.setFieldValue('is_backup', open?.is_backup)
         } else {
             const myCompany = partners.find((i) => i.isMyCompany)
             form.setFieldValue('date', dayjs(new Date()))
             form.setFieldValue('customer_id', myCompany?._id)
             form.setFieldValue('date_ordered', dayjs(new Date()))
+            form.setFieldValue('is_backup', false)
         }
     }, [open])
 
@@ -1638,6 +1655,13 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                         <DatePicker style={{ width: '100%' }} />
                     </Form.Item>
                 </Space.Compact>
+                <Form.Item
+                    name="is_backup"
+                    label="Đơn dự phòng"
+                    valuePropName="checked"
+                >
+                    <Switch />
+                </Form.Item>
 
                 <div style={{ marginBottom: 16 }}>
                     <Space size={100}>
@@ -1834,6 +1858,16 @@ const MyPurchaseRequestLineDrawer = ({
                 bundle_id,
                 packing_id,
             } = form.getFieldsValue()
+
+            const is_backup = outerForm.getFieldValue('is_backup')
+            if (
+                !product_id ||
+                (is_backup && (!brand_id || !bundle_id || !packing_id))
+            )
+                return alert(
+                    'Vui lòng nhập đầy đủ thông tin bắt buộc cho đơn dự phòng (Sản phẩm, Brand, Mặt hàng, Packing)'
+                )
+
             if (!product_id)
                 return alert('Vui lòng nhập đầy đủ thông tin bắt buộc')
 
@@ -2161,7 +2195,17 @@ const MyPurchaseRequestLineDrawer = ({
                     </Col>
 
                     <Col span={8}>
-                        <Form.Item name="brand_id" label="Brand">
+                        <Form.Item
+                            name="brand_id"
+                            label="Brand"
+                            rules={[
+                                {
+                                    required:
+                                        outerForm.getFieldValue('is_backup'),
+                                    message: 'Hãy chọn Brand',
+                                },
+                            ]}
+                        >
                             <Select
                                 allowClear
                                 showSearch
@@ -2215,7 +2259,17 @@ const MyPurchaseRequestLineDrawer = ({
                         </Form.Item>
                     </Col>
                     <Col span={8}>
-                        <Form.Item name="bundle_id" label="Mặt hàng">
+                        <Form.Item
+                            name="bundle_id"
+                            label="Mặt hàng"
+                            rules={[
+                                {
+                                    required:
+                                        outerForm.getFieldValue('is_backup'),
+                                    message: 'Hãy chọn Mặt hàng',
+                                },
+                            ]}
+                        >
                             <Select
                                 allowClear
                                 showSearch
@@ -2280,7 +2334,17 @@ const MyPurchaseRequestLineDrawer = ({
                         </Form.Item>
                     </Col>
                     <Col span={8}>
-                        <Form.Item name="packing_id" label="Packing">
+                        <Form.Item
+                            name="packing_id"
+                            label="Packing"
+                            rules={[
+                                {
+                                    required:
+                                        outerForm.getFieldValue('is_backup'),
+                                    message: 'Hãy chọn Packing',
+                                },
+                            ]}
+                        >
                             <Select
                                 allowClear
                                 showSearch

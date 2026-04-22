@@ -302,7 +302,13 @@ const BackupPurchaseOrder = () => {
         )
         if (otherTotal + uqtEditForm.usedQuantity > lineQty) {
             return alert(
-                `Số lượng vượt quá giới hạn!\nCác record khác đã dùng: ${Intl.NumberFormat().format(otherTotal)}\nSố lượng đơn: ${Intl.NumberFormat().format(lineQty)}\nTối đa có thể nhập: ${Intl.NumberFormat().format(lineQty - otherTotal)}`
+                `Số lượng vượt quá giới hạn!\nCác record khác đã dùng: ${Intl.NumberFormat().format(
+                    otherTotal
+                )}\nSố lượng đơn: ${Intl.NumberFormat().format(
+                    lineQty
+                )}\nTối đa có thể nhập: ${Intl.NumberFormat().format(
+                    lineQty - otherTotal
+                )}`
             )
         }
 
@@ -362,7 +368,7 @@ const BackupPurchaseOrder = () => {
 
     const handleDelete = async (record) => {
         try {
-            if (window.confirm('Bạn có thực sự muốn xóa ?')) {
+            if (window.confirm('Bạn có thực sự muốn xóa?')) {
                 await axios.delete(`/api/delete-po/${record._id}`)
                 await getPos()
                 alert('Đã xóa thành công!')
@@ -444,7 +450,7 @@ const BackupPurchaseOrder = () => {
                 const quy_cach = finalList[i]?.quy_cach
                 const tieu_chuan = finalList[i]?.standard
                 const so_de_nghi = finalList[i]?.po?.pr_name || ''
-                const can_cu = `Căn cứ vào bảng đề nghị mua vật tư: Số đề nghị ${so_de_nghi} của Phòng Kinh Doanh`
+                const can_cu = `Căn cứ vào bảng đề nghị mua vật tư: Số đề nghị ${so_de_nghi} của Phòng Kinh Doanh`
                 processedData.push({
                     Tháng: month,
                     STT: stt,
@@ -1218,6 +1224,15 @@ const BackupPurchaseOrder = () => {
                         : '-',
             },
             {
+                title: 'Ngày nhập kho',
+                dataIndex: 'order_id',
+                key: 'date_received',
+                render: (po) =>
+                    po?.date_received
+                        ? dayjs(po.date_received).format('DD/MM/YYYY')
+                        : '-',
+            },
+            {
                 title: 'Số lượng đơn hàng',
                 dataIndex: 'quantity',
                 key: 'quantity',
@@ -1683,84 +1698,93 @@ const BackupPurchaseOrder = () => {
                     </Form.Item>
                 </Form>
             </Modal>
-            <Tabs defaultActiveKey="input" type="card">
+            <Tabs defaultActiveKey="output" type="card">
+                {/* 
                 <Tabs.TabPane tab="Input" key="input">
-                    <div
-                        style={{
-                            background: '#fff',
-                            padding: '20px',
-                            borderRadius: '8px',
-                        }}
-                    >
-                        <Space>
-                            <Button
-                                type="primary"
-                                onClick={() => setShowDrawer(true)}
-                                style={{ marginBottom: 16 }}
-                            >
-                                Tạo đơn dự phòng
-                            </Button>
-                            <div>
-                                <input
-                                    type="file"
-                                    ref={fileInputReceiptRef}
-                                    style={{ display: 'none' }}
-                                    onChange={handleImportReceiptDate}
-                                />
-                                <Button
-                                    onClick={() => {
-                                        fileInputReceiptRef.current.click()
-                                    }}
-                                    style={{ marginBottom: 16 }}
-                                >
-                                    Import ngày nhập kho
-                                </Button>
-                            </div>
-                            {selectedRowKeys.length > 0 && (
-                                <Button
-                                    onClick={handleExportSummaryFile}
-                                    style={{ marginBottom: 16 }}
-                                >
-                                    Xuất file tổng hợp
-                                </Button>
-                            )}
-                        </Space>
-                        <Table
-                            columns={columns}
-                            rowSelection={rowSelection}
-                            size="small"
-                            rowKey={(record) => record._id}
-                            pagination={{
-                                defaultPageSize: 15,
-                                showSizeChanger: true,
+                */}
+                {false && (
+                    <Tabs.TabPane tab="Input" key="input">
+                        <div
+                            style={{
+                                background: '#fff',
+                                padding: '20px',
+                                borderRadius: '8px',
                             }}
-                            scroll={{ x: 'max-content' }}
-                            dataSource={getFilteredData().map((i) => {
-                                let contractString = ''
-                                const contractList = i.contract_id
-                                for (let k = 0; k < contractList.length; k++) {
-                                    if (k === contractList.length - 1) {
-                                        contractString =
-                                            contractString +
-                                            contractList[k]?.code
-                                    } else {
-                                        contractString =
-                                            contractString +
-                                            contractList[k]?.code +
-                                            ', '
+                        >
+                            <Space>
+                                <Button
+                                    type="primary"
+                                    onClick={() => setShowDrawer(true)}
+                                    style={{ marginBottom: 16 }}
+                                >
+                                    Tạo đơn dự phòng
+                                </Button>
+                                <div>
+                                    <input
+                                        type="file"
+                                        ref={fileInputReceiptRef}
+                                        style={{ display: 'none' }}
+                                        onChange={handleImportReceiptDate}
+                                    />
+                                    <Button
+                                        onClick={() => {
+                                            fileInputReceiptRef.current.click()
+                                        }}
+                                        style={{ marginBottom: 16 }}
+                                    >
+                                        Import ngày nhập kho
+                                    </Button>
+                                </div>
+                                {selectedRowKeys.length > 0 && (
+                                    <Button
+                                        onClick={handleExportSummaryFile}
+                                        style={{ marginBottom: 16 }}
+                                    >
+                                        Xuất file tổng hợp
+                                    </Button>
+                                )}
+                            </Space>
+                            <Table
+                                columns={columns}
+                                rowSelection={rowSelection}
+                                size="small"
+                                rowKey={(record) => record._id}
+                                pagination={{
+                                    defaultPageSize: 15,
+                                    showSizeChanger: true,
+                                }}
+                                scroll={{ x: 'max-content' }}
+                                dataSource={getFilteredData().map((i) => {
+                                    let contractString = ''
+                                    const contractList = i.contract_id
+                                    for (
+                                        let k = 0;
+                                        k < contractList.length;
+                                        k++
+                                    ) {
+                                        if (k === contractList.length - 1) {
+                                            contractString =
+                                                contractString +
+                                                contractList[k]?.code
+                                        } else {
+                                            contractString =
+                                                contractString +
+                                                contractList[k]?.code +
+                                                ', '
+                                        }
                                     }
-                                }
-                                return {
-                                    ...i,
-                                    partner: i?.partner_id?.short_name,
-                                    pr: i?.pr_id?.name,
-                                    buyer: i?.buyer_id?.name,
-                                    contract: contractString,
-                                }
-                            })}
-                        />
-                    </div>
-                </Tabs.TabPane>
+                                    return {
+                                        ...i,
+                                        partner: i?.partner_id?.short_name,
+                                        pr: i?.pr_id?.name,
+                                        buyer: i?.buyer_id?.name,
+                                        contract: contractString,
+                                    }
+                                })}
+                            />
+                        </div>
+                    </Tabs.TabPane>
+                )}
                 <Tabs.TabPane tab="Output" key="output">
                     <div
                         style={{

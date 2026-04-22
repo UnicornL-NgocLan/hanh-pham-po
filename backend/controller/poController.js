@@ -367,10 +367,11 @@ const poCtrl = {
 
     getPurchaseOrders: async (req, res) => {
         try {
-            const is_backup = req.query.is_backup === 'true'
-            const data = await PurchaseOrder.find({
-                is_backup: is_backup ? true : { $ne: true },
-            })
+            let filter = {}
+            if (req.query.is_backup !== undefined) {
+                filter.is_backup = req.query.is_backup === 'true'
+            }
+            const data = await PurchaseOrder.find(filter)
                 .populate('partner_id customer_id contract_id buyer_id')
                 .sort({ date_ordered: -1 })
             res.status(200).json({ data })
