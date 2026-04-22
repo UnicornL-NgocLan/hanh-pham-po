@@ -43,7 +43,9 @@ router.post(
 router.post('/create-used-qty-transaction', poController.createUsedQuantityTransaction)
 router.get('/get-used-qty-transactions/:line_id', poController.getUsedQuantityTransactionsByLine)
 router.get('/get-used-qty-transactions-bulk', poController.getUsedQuantityTransactionsByLines)
+router.get('/get-backup-po-report', poController.getBackupPOReport)
 router.patch('/update-used-qty-transaction/:id', poController.updateUsedQuantityTransaction)
+
 router.delete('/delete-used-qty-transaction/:id', poController.deleteUsedQuantityTransaction)
 
 module.exports = router

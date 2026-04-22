@@ -23,7 +23,12 @@ import { useZustand } from '../zustand.js'
 import moment from 'moment'
 import Highlighter from 'react-highlight-words'
 import { MdModeEdit } from 'react-icons/md'
-import { DeleteFilled, EditFilled, SearchOutlined } from '@ant-design/icons'
+import {
+    DeleteFilled,
+    EditFilled,
+    SearchOutlined,
+    DownloadOutlined,
+} from '@ant-design/icons'
 import dayjs from 'dayjs'
 import customParseFormat from 'dayjs/plugin/customParseFormat'
 import isBetween from 'dayjs/plugin/isBetween'
@@ -105,6 +110,55 @@ const BackupPurchaseOrder = () => {
     })
     const [uqtEditSubmitting, setUqtEditSubmitting] = useState(false)
     const [openMyContractDrawer, setOpenMyContractDrawer] = useState(false)
+
+    // Report
+    const [reportFilters, setReportFilters] = useState({
+        buyer_id: 'all',
+        bundle_id: 'all',
+        brand_id: 'all',
+    })
+    const [reportData, setReportData] = useState([])
+    const [reportLoading, setReportLoading] = useState(false)
+
+    const fetchReportData = async () => {
+        try {
+            setReportLoading(true)
+            const { buyer_id, bundle_id, brand_id } = reportFilters
+            const { data } = await axios.get(
+                `/api/get-backup-po-report?buyer_id=${buyer_id}&bundle_id=${bundle_id}&brand_id=${brand_id}`
+            )
+            setReportData(data.data)
+        } catch (error) {
+            console.log(error)
+            alert(error?.response?.data?.msg || error.message)
+        } finally {
+            setReportLoading(false)
+        }
+    }
+
+    const handleExportReport = async () => {
+        try {
+            if (reportData.length === 0)
+                return alert('Không có dữ liệu để xuất')
+            const processedData = reportData.map((item) => ({
+                'Khách hàng': item.buyer,
+                'Mặt hàng': item.bundle,
+                Brand: item.brand,
+                'Số lượng 1 Cont': item.numCartonPerCont || '-',
+                'Sản phẩm': item.product,
+                'Tổng số cont có sẵn': item.totalContAvailable?.toFixed(2) || 0,
+                'Tổng số cont chưa nhập kho':
+                    item.totalContInTransit?.toFixed(2) || 0,
+                'Tổng số lượng có sẵn': item.totalQuantityAvailable || 0,
+                'Tổng số lượng chưa nhập kho': item.totalQuantityInTransit || 0,
+                'Tổng số lượng đã sử dụng': item.totalUsedQuantity || 0,
+            }))
+            await exportSummaryExcelFile(processedData)
+        } catch (error) {
+            console.log(error)
+            alert(error.message)
+        }
+    }
 
     const getContracts = async () => {
         try {
@@ -1977,7 +2031,245 @@ const BackupPurchaseOrder = () => {
                         </Modal>
                     </div>
                 </Tabs.TabPane>
+                <Tabs.TabPane tab="Report" key="report">
+                    <div
+                        style={{
+                            background: '#fff',
+                            padding: '20px',
+                            borderRadius: '8px',
+                        }}
+                    >
+                        <div
+                            style={{
+                                display: 'flex',
+                                alignItems: 'flex-end',
+                                gap: '16px',
+                                marginBottom: '24px',
+                                flexWrap: 'wrap',
+                            }}
+                        >
+                            <div style={{ flex: 1, minWidth: '200px' }}>
+                                <div
+                                    style={{
+                                        fontSize: '11px',
+                                        fontWeight: 'bold',
+                                        color: '#8c8c8c',
+                                        marginBottom: '8px',
+                                        textTransform: 'uppercase',
+                                    }}
+                                >
+                                    Khách hàng
+                                </div>
+                                <Select
+                                    style={{ width: '100%' }}
+                                    placeholder="Chọn khách hàng"
+                                    value={reportFilters.buyer_id}
+                                    onChange={(val) =>
+                                        setReportFilters({
+                                            ...reportFilters,
+                                            buyer_id: val,
+                                        })
+                                    }
+                                    showSearch
+                                    filterOption={(input, option) =>
+                                        (option?.label ?? '')
+                                            .toLowerCase()
+                                            .includes(input.toLowerCase())
+                                    }
+                                    options={[
+                                        {
+                                            value: 'all',
+                                            label: 'Tất cả khách hàng',
+                                        },
+                                        ...partners.map((p) => ({
+                                            value: p._id,
+                                            label: p.name,
+                                        })),
+                                    ]}
+                                />
+                            </div>
+                            <div style={{ flex: 1, minWidth: '200px' }}>
+                                <div
+                                    style={{
+                                        fontSize: '11px',
+                                        fontWeight: 'bold',
+                                        color: '#8c8c8c',
+                                        marginBottom: '8px',
+                                        textTransform: 'uppercase',
+                                    }}
+                                >
+                                    Mặt hàng
+                                </div>
+                                <Select
+                                    style={{ width: '100%' }}
+                                    placeholder="Chọn mặt hàng"
+                                    value={reportFilters.bundle_id}
+                                    onChange={(val) =>
+                                        setReportFilters({
+                                            ...reportFilters,
+                                            bundle_id: val,
+                                        })
+                                    }
+                                    showSearch
+                                    filterOption={(input, option) =>
+                                        (option?.label ?? '')
+                                            .toLowerCase()
+                                            .includes(input.toLowerCase())
+                                    }
+                                    options={[
+                                        {
+                                            value: 'all',
+                                            label: 'Tất cả mặt hàng',
+                                        },
+                                        ...bundles.map((b) => ({
+                                            value: b._id,
+                                            label: b.name,
+                                        })),
+                                    ]}
+                                />
+                            </div>
+                            <div style={{ flex: 1, minWidth: '200px' }}>
+                                <div
+                                    style={{
+                                        fontSize: '11px',
+                                        fontWeight: 'bold',
+                                        color: '#8c8c8c',
+                                        marginBottom: '8px',
+                                        textTransform: 'uppercase',
+                                    }}
+                                >
+                                    Brand
+                                </div>
+                                <Select
+                                    style={{ width: '100%' }}
+                                    placeholder="Chọn brand"
+                                    value={reportFilters.brand_id}
+                                    onChange={(val) =>
+                                        setReportFilters({
+                                            ...reportFilters,
+                                            brand_id: val,
+                                        })
+                                    }
+                                    showSearch
+                                    filterOption={(input, option) =>
+                                        (option?.label ?? '')
+                                            .toLowerCase()
+                                            .includes(input.toLowerCase())
+                                    }
+                                    options={[
+                                        { value: 'all', label: 'Tất cả brand' },
+                                        ...brands.map((b) => ({
+                                            value: b._id,
+                                            label: b.name,
+                                        })),
+                                    ]}
+                                />
+                            </div>
+                            <Button
+                                type="primary"
+                                icon={<SearchOutlined />}
+                                size="middle"
+                                onClick={fetchReportData}
+                                loading={reportLoading}
+                            >
+                                Tìm kiếm
+                            </Button>
+                            <Button
+                                icon={<DownloadOutlined />}
+                                size="middle"
+                                onClick={handleExportReport}
+                                disabled={reportData.length === 0}
+                            >
+                                Xuất
+                            </Button>
+                        </div>
+
+                        <Table
+                            columns={[
+                                {
+                                    title: 'Khách hàng',
+                                    dataIndex: 'buyer',
+                                    key: 'buyer',
+                                },
+                                {
+                                    title: 'Mặt hàng',
+                                    dataIndex: 'bundle',
+                                    key: 'bundle',
+                                },
+                                {
+                                    title: 'Brand',
+                                    dataIndex: 'brand',
+                                    key: 'brand',
+                                },
+                                {
+                                    title: 'Số lượng 1 Cont',
+                                    dataIndex: 'numCartonPerCont',
+                                    key: 'numCartonPerCont',
+                                    align: 'right',
+                                    render: (val) =>
+                                        val
+                                            ? Intl.NumberFormat().format(val)
+                                            : '-',
+                                },
+                                {
+                                    title: 'Sản phẩm',
+                                    dataIndex: 'product',
+                                    key: 'product',
+                                },
+                                {
+                                    title: 'Tổng số cont có sẵn',
+                                    dataIndex: 'totalContAvailable',
+                                    key: 'totalContAvailable',
+                                    align: 'right',
+                                    render: (val) =>
+                                        val ? val.toFixed(2) : '0',
+                                },
+                                {
+                                    title: 'Tổng số cont chưa nhập kho',
+                                    dataIndex: 'totalContInTransit',
+                                    key: 'totalContInTransit',
+                                    align: 'right',
+                                    render: (val) =>
+                                        val ? val.toFixed(2) : '0',
+                                },
+                                {
+                                    title: 'Tổng số lượng có sẵn',
+                                    dataIndex: 'totalQuantityAvailable',
+                                    key: 'totalQuantityAvailable',
+                                    align: 'right',
+                                    render: (val) =>
+                                        Intl.NumberFormat().format(val || 0),
+                                },
+                                {
+                                    title: 'Tổng số lượng chưa nhập kho',
+                                    dataIndex: 'totalQuantityInTransit',
+                                    key: 'totalQuantityInTransit',
+                                    align: 'right',
+                                    render: (val) =>
+                                        Intl.NumberFormat().format(val || 0),
+                                },
+                                {
+                                    title: 'Tổng số lượng đã sử dụng',
+                                    dataIndex: 'totalUsedQuantity',
+                                    key: 'totalUsedQuantity',
+                                    align: 'right',
+                                    render: (val) =>
+                                        Intl.NumberFormat().format(val || 0),
+                                },
+                            ]}
+                            dataSource={reportData}
+                            size="small"
+                            rowKey={(record, index) => index}
+                            pagination={{
+                                defaultPageSize: 15,
+                                showSizeChanger: true,
+                            }}
+                            loading={reportLoading}
+                        />
+                    </div>
+                </Tabs.TabPane>
             </Tabs>
+
             {openMyContractDrawer && (
                 <MyContractDrawer
                     open={openMyContractDrawer}

@@ -1,4 +1,6 @@
+const mongoose = require('mongoose')
 const PurchaseRequestLine = require('../model/purchaseRequestLine.js')
+
 const PurchaseOrderLine = require('../model/purchaseOrderLine.js')
 const PurchaseRequest = require('../model/purchaseRequest.js')
 const PurchaseOrder = require('../model/purchaseOrder.js')
@@ -6,6 +8,10 @@ const Partner = require('../model/partner.js')
 const PurchaseRequestSequence = require('../model/purchaseRequestSequence.js')
 const UsedQuantityTransaction = require('../model/usedQuantityTransaction.js')
 const moment = require('moment')
+const Product = require('../model/product.js')
+const Brand = require('../model/brand.js')
+const Bundle = require('../model/bundle.js')
+const Packing = require('../model/packing.js')
 
 const poCtrl = {
     createPurChaseRequest: async (req, res) => {
@@ -590,7 +596,8 @@ const poCtrl = {
             if (buyer_id && buyer_id !== 'all') query.buyer_id = buyer_id
             if (bundle_id && bundle_id !== 'all') query.bundle_id = bundle_id
             if (brand_id && brand_id !== 'all') query.brand_id = brand_id
-            if (packing_id && packing_id !== 'all') query.packing_id = packing_id
+            if (packing_id && packing_id !== 'all')
+                query.packing_id = packing_id
 
             const data = await PurchaseOrderLine.find(query)
                 .populate({
@@ -782,6 +789,208 @@ const poCtrl = {
             ).populate('usedForContractId')
 
             res.status(200).json({ msg: 'OK', data: updated })
+        } catch (error) {
+            res.status(500).json({ msg: error.message })
+        }
+    },
+
+    getBackupPOReport: async (req, res) => {
+        try {
+            const { buyer_id, bundle_id, brand_id } = req.query
+
+            // 1. Tìm các POLines thuộc PO is_backup = true
+            let matchPOLine = {}
+            if (buyer_id && buyer_id !== 'all')
+                matchPOLine.buyer_id = new mongoose.Types.ObjectId(buyer_id)
+            if (bundle_id && bundle_id !== 'all')
+                matchPOLine.bundle_id = new mongoose.Types.ObjectId(bundle_id)
+            if (brand_id && brand_id !== 'all')
+                matchPOLine.brand_id = new mongoose.Types.ObjectId(brand_id)
+
+            const reportData = await PurchaseOrderLine.aggregate([
+                { $match: matchPOLine },
+                {
+                    $lookup: {
+                        from: 'purchaseorders',
+                        localField: 'order_id',
+                        foreignField: '_id',
+                        as: 'order',
+                    },
+                },
+                { $unwind: '$order' },
+                { $match: { 'order.is_backup': true } },
+                {
+                    $lookup: {
+                        from: 'usedquantitytransactions',
+                        localField: '_id',
+                        foreignField: 'purchase_order_line_id',
+                        as: 'transactions',
+                    },
+                },
+
+                {
+                    $addFields: {
+                        sumUsedQty: { $sum: '$transactions.usedQuantity' },
+                        isReceived: {
+                            $cond: [
+                                { $gt: ['$order.date_received', null] },
+                                1,
+                                0,
+                            ],
+                        },
+                    },
+                },
+                {
+                    $group: {
+                        _id: {
+                            buyer_id: '$buyer_id',
+                            bundle_id: '$bundle_id',
+                            brand_id: '$brand_id',
+                            product_id: '$product_id',
+                        },
+                        totalUsedQuantity: { $sum: '$sumUsedQty' },
+                        totalQuantityAvailable: {
+                            $sum: {
+                                $cond: [
+                                    { $eq: ['$isReceived', 1] },
+                                    { $ifNull: ['$quantity', 0] },
+                                    0,
+                                ],
+                            },
+                        },
+                        totalQuantityInTransit: {
+                            $sum: {
+                                $cond: [
+                                    { $eq: ['$isReceived', 0] },
+                                    { $ifNull: ['$quantity', 0] },
+                                    0,
+                                ],
+                            },
+                        },
+                    },
+                },
+                {
+                    $lookup: {
+                        from: 'partners',
+                        localField: '_id.buyer_id',
+                        foreignField: '_id',
+                        as: 'buyer',
+                    },
+                },
+                {
+                    $lookup: {
+                        from: 'bundles',
+                        localField: '_id.bundle_id',
+                        foreignField: '_id',
+                        as: 'bundle',
+                    },
+                },
+                {
+                    $lookup: {
+                        from: 'brands',
+                        localField: '_id.brand_id',
+                        foreignField: '_id',
+                        as: 'brand',
+                    },
+                },
+                {
+                    $lookup: {
+                        from: 'products',
+                        localField: '_id.product_id',
+                        foreignField: '_id',
+                        as: 'product',
+                    },
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        buyer: { $arrayElemAt: ['$buyer.name', 0] },
+                        bundle: { $arrayElemAt: ['$bundle.name', 0] },
+                        brand: { $arrayElemAt: ['$brand.name', 0] },
+                        numCartonPerCont: {
+                            $ifNull: [
+                                {
+                                    $arrayElemAt: [
+                                        '$bundle.number_of_carton_per_container',
+                                        0,
+                                    ],
+                                },
+                                0,
+                            ],
+                        },
+                        product: { $arrayElemAt: ['$product.name', 0] },
+                        totalUsedQuantity: 1,
+                        totalQuantityAvailable: 1,
+                        totalQuantityInTransit: 1,
+                        totalContAvailable: {
+                            $cond: [
+                                {
+                                    $gt: [
+                                        {
+                                            $ifNull: [
+                                                {
+                                                    $arrayElemAt: [
+                                                        '$bundle.number_of_carton_per_container',
+                                                        0,
+                                                    ],
+                                                },
+                                                0,
+                                            ],
+                                        },
+                                        0,
+                                    ],
+                                },
+                                {
+                                    $divide: [
+                                        '$totalQuantityAvailable',
+                                        {
+                                            $arrayElemAt: [
+                                                '$bundle.number_of_carton_per_container',
+                                                0,
+                                            ],
+                                        },
+                                    ],
+                                },
+                                0,
+                            ],
+                        },
+                        totalContInTransit: {
+                            $cond: [
+                                {
+                                    $gt: [
+                                        {
+                                            $ifNull: [
+                                                {
+                                                    $arrayElemAt: [
+                                                        '$bundle.number_of_carton_per_container',
+                                                        0,
+                                                    ],
+                                                },
+                                                0,
+                                            ],
+                                        },
+                                        0,
+                                    ],
+                                },
+                                {
+                                    $divide: [
+                                        '$totalQuantityInTransit',
+                                        {
+                                            $arrayElemAt: [
+                                                '$bundle.number_of_carton_per_container',
+                                                0,
+                                            ],
+                                        },
+                                    ],
+                                },
+                                0,
+                            ],
+                        },
+                    },
+                },
+            ])
+
+            res.status(200).json({ data: reportData })
         } catch (error) {
             res.status(500).json({ msg: error.message })
         }
