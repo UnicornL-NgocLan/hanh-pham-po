@@ -796,7 +796,7 @@ const poCtrl = {
 
     getBackupPOReport: async (req, res) => {
         try {
-            const { buyer_id, bundle_id, brand_id } = req.query
+            const { buyer_id, bundle_id, brand_id, packing_id } = req.query
 
             // 1. Tìm các POLines thuộc PO is_backup = true
             let matchPOLine = {}
@@ -806,6 +806,8 @@ const poCtrl = {
                 matchPOLine.bundle_id = new mongoose.Types.ObjectId(bundle_id)
             if (brand_id && brand_id !== 'all')
                 matchPOLine.brand_id = new mongoose.Types.ObjectId(brand_id)
+            if (packing_id && packing_id !== 'all')
+                matchPOLine.packing_id = new mongoose.Types.ObjectId(packing_id)
 
             const reportData = await PurchaseOrderLine.aggregate([
                 { $match: matchPOLine },
@@ -846,6 +848,7 @@ const poCtrl = {
                             buyer_id: '$buyer_id',
                             bundle_id: '$bundle_id',
                             brand_id: '$brand_id',
+                            packing_id: '$packing_id',
                             product_id: '$product_id',
                         },
                         totalUsedQuantity: { $sum: '$sumUsedQty' },
@@ -895,6 +898,14 @@ const poCtrl = {
                 },
                 {
                     $lookup: {
+                        from: 'packings',
+                        localField: '_id.packing_id',
+                        foreignField: '_id',
+                        as: 'packing',
+                    },
+                },
+                {
+                    $lookup: {
                         from: 'products',
                         localField: '_id.product_id',
                         foreignField: '_id',
@@ -907,6 +918,7 @@ const poCtrl = {
                         buyer: { $arrayElemAt: ['$buyer.name', 0] },
                         bundle: { $arrayElemAt: ['$bundle.name', 0] },
                         brand: { $arrayElemAt: ['$brand.name', 0] },
+                        packing: { $arrayElemAt: ['$packing.name', 0] },
                         numCartonPerCont: {
                             $ifNull: [
                                 {

@@ -116,6 +116,7 @@ const BackupPurchaseOrder = () => {
         buyer_id: 'all',
         bundle_id: 'all',
         brand_id: 'all',
+        packing_id: 'all',
     })
     const [reportData, setReportData] = useState([])
     const [reportLoading, setReportLoading] = useState(false)
@@ -123,9 +124,9 @@ const BackupPurchaseOrder = () => {
     const fetchReportData = async () => {
         try {
             setReportLoading(true)
-            const { buyer_id, bundle_id, brand_id } = reportFilters
+            const { buyer_id, bundle_id, brand_id, packing_id } = reportFilters
             const { data } = await axios.get(
-                `/api/get-backup-po-report?buyer_id=${buyer_id}&bundle_id=${bundle_id}&brand_id=${brand_id}`
+                `/api/get-backup-po-report?buyer_id=${buyer_id}&bundle_id=${bundle_id}&brand_id=${brand_id}&packing_id=${packing_id}`
             )
             setReportData(data.data)
         } catch (error) {
@@ -144,6 +145,7 @@ const BackupPurchaseOrder = () => {
                 'Khách hàng': item.buyer,
                 'Mặt hàng': item.bundle,
                 Brand: item.brand,
+                Packing: item.packing,
                 'Số lượng 1 Cont': item.numCartonPerCont || '-',
                 'Sản phẩm': item.product,
                 'Tổng số cont có sẵn': item.totalContAvailable?.toFixed(2) || 0,
@@ -2165,6 +2167,46 @@ const BackupPurchaseOrder = () => {
                                     ]}
                                 />
                             </div>
+                            <div style={{ flex: 1, minWidth: '200px' }}>
+                                <div
+                                    style={{
+                                        fontSize: '11px',
+                                        fontWeight: 'bold',
+                                        color: '#8c8c8c',
+                                        marginBottom: '8px',
+                                        textTransform: 'uppercase',
+                                    }}
+                                >
+                                    Packing
+                                </div>
+                                <Select
+                                    style={{ width: '100%' }}
+                                    placeholder="Chọn packing"
+                                    value={reportFilters.packing_id}
+                                    onChange={(val) =>
+                                        setReportFilters({
+                                            ...reportFilters,
+                                            packing_id: val,
+                                        })
+                                    }
+                                    showSearch
+                                    filterOption={(input, option) =>
+                                        (option?.label ?? '')
+                                            .toLowerCase()
+                                            .includes(input.toLowerCase())
+                                    }
+                                    options={[
+                                        {
+                                            value: 'all',
+                                            label: 'Tất cả packing',
+                                        },
+                                        ...packings.map((p) => ({
+                                            value: p._id,
+                                            label: p.name,
+                                        })),
+                                    ]}
+                                />
+                            </div>
                             <Button
                                 type="primary"
                                 icon={<SearchOutlined />}
@@ -2200,6 +2242,11 @@ const BackupPurchaseOrder = () => {
                                     title: 'Brand',
                                     dataIndex: 'brand',
                                     key: 'brand',
+                                },
+                                {
+                                    title: 'Packing',
+                                    dataIndex: 'packing',
+                                    key: 'packing',
                                 },
                                 {
                                     title: 'Số lượng 1 Cont',
