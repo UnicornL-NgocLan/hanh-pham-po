@@ -3,14 +3,13 @@ import { Layout, Menu, theme } from 'antd'
 import { Outlet, useNavigate } from 'react-router'
 import { TfiPackage } from 'react-icons/tfi'
 import { FaRegUser } from 'react-icons/fa6'
-import { IoIosWater } from 'react-icons/io'
-import { VscGitPullRequestNewChanges } from 'react-icons/vsc'
+import { IoIosWater, IoMdEye } from 'react-icons/io'
 import {
     TbHexagonNumber3Filled,
     TbBrandOpenSource,
     TbPackages,
 } from 'react-icons/tb'
-import { IoCartSharp, IoDocumentTextSharp, IoDuplicate } from 'react-icons/io5'
+import { IoCartSharp, IoDocumentTextSharp } from 'react-icons/io5'
 const { Content, Sider } = Layout
 
 const siderStyle = {
@@ -112,7 +111,7 @@ const App = () => {
         },
         {
             key: 10,
-            icon: <IoDuplicate />,
+            icon: <IoMdEye />,
             label: 'Theo dõi đơn',
             onClick: () => {
                 handleNavigate('/backup-purchase-order', 10)
