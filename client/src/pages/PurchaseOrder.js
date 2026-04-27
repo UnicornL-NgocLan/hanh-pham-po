@@ -344,7 +344,6 @@ const PurchaseOrder = () => {
             worker.onmessage = async (e) => {
                 const { success, data, error } = e.data
                 if (success) {
-                    const conflicts = []
                     const poMap = {}
                     data.forEach((row) => {
                         const orderName = row['ĐƠN HÀNG']
@@ -363,33 +362,15 @@ const PurchaseOrder = () => {
                             dateStr = moment(date).format('DD/MM/YYYY')
                         }
 
-                        if (!poMap[orderName]) {
-                            poMap[orderName] = new Set()
-                        }
-                        poMap[orderName].add(dateStr)
-                    })
-
-                    Object.keys(poMap).forEach((name) => {
-                        if (poMap[name].size > 1) {
-                            conflicts.push(
-                                `${name} (${Array.from(poMap[name]).join(', ')})`
-                            )
+                        const currentMoment = moment(dateStr, 'DD/MM/YYYY')
+                        if (!poMap[orderName] || currentMoment.isAfter(poMap[orderName])) {
+                            poMap[orderName] = currentMoment
                         }
                     })
-
-                    if (conflicts.length > 0) {
-                        alert(
-                            `Phát hiện xung đột dữ liệu (Cùng đơn hàng nhưng khác ngày):\n${conflicts.join('\n')}`
-                        )
-                        fileInputReceiptRef.current.value = ''
-                        worker.terminate()
-                        return
-                    }
 
                     const updateData = []
                     Object.keys(poMap).forEach((name) => {
-                        const dateStr = Array.from(poMap[name])[0]
-                        const dateObj = moment(dateStr, 'DD/MM/YYYY').toDate()
+                        const dateObj = poMap[name].toDate()
                         updateData.push({
                             order_name: name,
                             date_received: dateObj,
