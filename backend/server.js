@@ -7,8 +7,8 @@ const mongoose = require('mongoose')
 
 const app = express()
 app.use(express.json())
-app.use(bodyParser.json({ limit: '1mb', type: 'application/json' }))
-app.use(bodyParser.urlencoded({ extended: true, limit: '1mb' }))
+app.use(bodyParser.json({ limit: '50mb', type: 'application/json' }))
+app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }))
 app.use(helmet())
 app.use(morgan('tiny'))
 
