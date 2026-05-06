@@ -1,10 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import { useZustand } from '../zustand.js'
-import { Button, Drawer, Form, Input, Space, Select, Table, Modal } from 'antd'
+import { Button, Drawer, Form, Input, Space, Select, Table, Modal, DatePicker, Checkbox } from 'antd'
 import Highlighter from 'react-highlight-words'
 import { SearchOutlined } from '@ant-design/icons'
 import moment from 'moment'
+import dayjs from 'dayjs'
+import isBetween from 'dayjs/plugin/isBetween'
+
+dayjs.extend(isBetween)
+
+const { RangePicker } = DatePicker
 
 const Contract = () => {
     const [showDrawer, setShowDrawer] = useState(false)
@@ -151,6 +157,113 @@ const Contract = () => {
                 text
             ),
     })
+    const getDateRangeSearchProps = (dataIndex) => ({
+        filterDropdown: ({
+            setSelectedKeys,
+            selectedKeys,
+            confirm,
+            clearFilters,
+            close,
+        }) => (
+            <div
+                style={{
+                    padding: 8,
+                }}
+                onKeyDown={(e) => e.stopPropagation()}
+            >
+                <Space direction="vertical" style={{ display: 'flex' }}>
+                    <RangePicker
+                        value={selectedKeys[0]?.range}
+                        onChange={(dates) => {
+                            setSelectedKeys([
+                                {
+                                    ...selectedKeys[0],
+                                    range: dates,
+                                    filterNull: false,
+                                },
+                            ])
+                        }}
+                        style={{
+                            marginBottom: 8,
+                        }}
+                    />
+                    <Checkbox
+                        checked={selectedKeys[0]?.filterNull}
+                        onChange={(e) => {
+                            setSelectedKeys([
+                                {
+                                    ...selectedKeys[0],
+                                    filterNull: e.target.checked,
+                                    range: null,
+                                },
+                            ])
+                        }}
+                    >
+                        Không có giá trị
+                    </Checkbox>
+                    <Space>
+                        <Button
+                            type="primary"
+                            onClick={() => confirm()}
+                            icon={<SearchOutlined />}
+                            size="small"
+                            style={{
+                                width: 90,
+                            }}
+                        >
+                            Tìm kiếm
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                clearFilters()
+                                confirm()
+                            }}
+                            size="small"
+                            style={{
+                                width: 90,
+                            }}
+                        >
+                            Reset
+                        </Button>
+                        <Button
+                            type="link"
+                            size="small"
+                            onClick={() => {
+                                close()
+                            }}
+                        >
+                            Đóng
+                        </Button>
+                    </Space>
+                </Space>
+            </div>
+        ),
+        filterIcon: (filtered) => (
+            <SearchOutlined
+                style={{
+                    color: filtered ? '#1677ff' : undefined,
+                }}
+            />
+        ),
+        onFilter: (value, record) => {
+            if (!value || (!value.range && !value.filterNull)) return true
+            const { range, filterNull } = value
+            const recordValue = record[dataIndex]
+
+            if (filterNull) {
+                return !recordValue
+            }
+
+            if (range && range.length === 2) {
+                if (!recordValue) return false
+                const date = dayjs(recordValue)
+                return date.isBetween(range[0], range[1], 'day', '[]')
+            }
+
+            return true
+        },
+    })
+
 
     const columns = [
         {
@@ -171,9 +284,10 @@ const Contract = () => {
             title: 'Ngày có hàng gần nhất',
             dataIndex: 'latest_delivery_date',
             key: 'latest_delivery_date',
+            ...getDateRangeSearchProps('latest_delivery_date'),
             render: (text) => (
                 <span>
-                    {text ? new Date(text).toLocaleDateString('vi-VN') : ''}
+                    {text ? dayjs(text).format('DD/MM/YYYY') : ''}
                 </span>
             ),
         },
