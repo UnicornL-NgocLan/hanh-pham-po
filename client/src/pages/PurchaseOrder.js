@@ -471,6 +471,11 @@ const PurchaseOrder = () => {
             title: 'Loại đơn',
             dataIndex: 'is_backup',
             key: 'is_backup',
+            filters: [
+                { text: 'Thông thường', value: false },
+                { text: 'Dự phòng', value: true },
+            ],
+            onFilter: (value, record) => (record.is_backup || false) === value,
             render: (val) => (
                 <Tag color={val ? 'orange' : 'blue'}>
                     {val ? 'Dự phòng' : 'Thông thường'}
@@ -848,6 +853,7 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                 date,
                 customer_id,
                 date_deliveried,
+                date_received,
                 delivered_to,
                 date_ordered,
                 active,
@@ -877,6 +883,7 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                     partner_id,
                     date,
                     date_deliveried,
+                    date_received,
                     delivered_to,
                     customer_id,
                     date_ordered,
@@ -894,6 +901,7 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                     customer_id,
                     date,
                     date_deliveried,
+                    date_received,
                     delivered_to,
                     date_ordered,
                     contract_id,
@@ -930,6 +938,7 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                 date,
                 customer_id,
                 date_deliveried,
+                date_received,
                 delivered_to,
                 date_ordered,
                 active,
@@ -956,6 +965,7 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                 customer_id,
                 date,
                 date_deliveried,
+                date_received,
                 delivered_to,
                 date_ordered,
                 contract_id,
@@ -1023,6 +1033,10 @@ const MyDrawer = ({ open, onClose, getPos }) => {
             form.setFieldValue(
                 'date_deliveried',
                 open?.date_deliveried ? dayjs(open?.date_deliveried) : null
+            )
+            form.setFieldValue(
+                'date_received',
+                open?.date_received ? dayjs(open?.date_received) : null
             )
             form.setFieldValue('delivered_to', open?.delivered_to)
             form.setFieldValue('is_backup', open?.is_backup)
@@ -1632,6 +1646,13 @@ const MyDrawer = ({ open, onClose, getPos }) => {
                         name="date_deliveried"
                         style={{ flex: 1 }}
                         label="Ngày giao hàng"
+                    >
+                        <DatePicker style={{ width: '100%' }} />
+                    </Form.Item>
+                    <Form.Item
+                        name="date_received"
+                        style={{ flex: 1 }}
+                        label="Ngày nhập kho"
                     >
                         <DatePicker style={{ width: '100%' }} />
                     </Form.Item>

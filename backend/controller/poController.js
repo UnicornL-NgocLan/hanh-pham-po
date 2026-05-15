@@ -251,6 +251,7 @@ const poCtrl = {
                 replacedForContract,
                 contract_id,
                 buyer_id,
+                date_received,
             } = req.body
 
             if (
@@ -338,6 +339,7 @@ const poCtrl = {
                 contract_id,
                 buyer_id,
                 date_ordered,
+                date_received,
                 is_backup: req.body.is_backup || false,
             })
             res.status(200).json({
