@@ -1663,8 +1663,9 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             wrapText: true,
         }
 
-        worksheet.mergeCells(`B${endNumRow + 12}:E${endNumRow + 12}`)
-        worksheet.getCell(`B${endNumRow + 12}`).value = 'ĐẠI DIỆN BÊN MUA'
+        worksheet.mergeCells(`B${endNumRow + 12}:M${endNumRow + 12}`)
+        worksheet.getCell(`B${endNumRow + 12}`).value =
+            'Lưu ý: Trường hợp có phát sinh phụ lục/văn bản thỏa thuận sau khi ký hợp đồng, thì bản hợp đồng của Stapimex lưu giữ sẽ được đại diện Stapimex ghi nhận cụ thể tại phần ghi chú bên dưới. (Bản hợp đồng của Bên đối tác lưu giữ có thể ghi hoặc không, tùy theo yêu cầu quản lý của đối tác).'
         // Apply font style
         worksheet.getCell(`B${endNumRow + 12}`).font = {
             name: 'Times New Roman',
@@ -1672,22 +1673,86 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         }
         worksheet.getCell(`B${endNumRow + 12}`).alignment = {
             wrapText: true,
-            vertical: 'middle',
-            horizontal: 'center',
+            vertical: 'top',
         }
 
-        worksheet.mergeCells(`I${endNumRow + 12}:M${endNumRow + 12}`)
-        worksheet.getCell(`I${endNumRow + 12}`).value = 'ĐẠI DIỆN BÊN BÁN'
+        worksheet.getRow(endNumRow + 12).height = 90
+
+        worksheet.mergeCells(`B${endNumRow + 13}:E${endNumRow + 13}`)
+        worksheet.getCell(`B${endNumRow + 13}`).value = 'ĐẠI DIỆN BÊN MUA'
         // Apply font style
-        worksheet.getCell(`I${endNumRow + 12}`).font = {
+        worksheet.getCell(`B${endNumRow + 13}`).font = {
             name: 'Times New Roman',
             size: 18,
         }
-        worksheet.getCell(`I${endNumRow + 12}`).alignment = {
+        worksheet.getCell(`B${endNumRow + 13}`).alignment = {
             wrapText: true,
             vertical: 'middle',
             horizontal: 'center',
         }
+
+        worksheet.mergeCells(`I${endNumRow + 13}:M${endNumRow + 13}`)
+        worksheet.getCell(`I${endNumRow + 13}`).value = 'ĐẠI DIỆN BÊN BÁN'
+        // Apply font style
+        worksheet.getCell(`I${endNumRow + 13}`).font = {
+            name: 'Times New Roman',
+            size: 18,
+        }
+        worksheet.getCell(`I${endNumRow + 13}`).alignment = {
+            wrapText: true,
+            vertical: 'middle',
+            horizontal: 'center',
+        }
+        worksheet.mergeCells(`B${endNumRow + 24}:M${endNumRow + 24}`)
+        worksheet.getCell(`B${endNumRow + 24}`).value =
+            'Ghi chú phụ lục/văn bản thỏa thuận đính kèm (nếu có):'
+        worksheet.getCell(`B${endNumRow + 24}`).font = {
+            name: 'Times New Roman',
+            size: 18,
+        }
+        worksheet.getCell(`B${endNumRow + 24}`).alignment = {
+            vertical: 'middle',
+        }
+
+        worksheet.getCell(`B${endNumRow + 25}`).value = 'STT'
+        worksheet.mergeCells(`C${endNumRow + 25}:F${endNumRow + 25}`)
+        worksheet.getCell(`C${endNumRow + 25}`).value =
+            'Số phụ lục/văn bản thoả thuận'
+        worksheet.mergeCells(`G${endNumRow + 25}:H${endNumRow + 25}`)
+        worksheet.getCell(`G${endNumRow + 25}`).value = 'Ngày ký'
+        worksheet.mergeCells(`I${endNumRow + 25}:M${endNumRow + 25}`)
+        worksheet.getCell(`I${endNumRow + 25}`).value =
+            'Xác nhận của đại diện STAPIMEX/ Đối tác'
+
+        for (let col of ['B', 'C', 'G', 'I']) {
+            worksheet.getCell(`${col}${endNumRow + 25}`).font = {
+                name: 'Times New Roman',
+                size: 18,
+            }
+            worksheet.getCell(`${col}${endNumRow + 25}`).alignment = {
+                vertical: 'middle',
+                horizontal: col === 'G' ? 'center' : 'left',
+            }
+        }
+
+        for (let r = endNumRow + 26; r <= endNumRow + 29; r++) {
+            worksheet.mergeCells(`C${r}:F${r}`)
+            worksheet.mergeCells(`G${r}:H${r}`)
+            worksheet.mergeCells(`I${r}:M${r}`)
+        }
+
+        for (let r = endNumRow + 25; r <= endNumRow + 29; r++) {
+            for (let c = 2; c <= 13; c++) {
+                const cell = worksheet.getRow(r).getCell(c)
+                cell.border = {
+                    top: { style: 'thin' },
+                    left: { style: 'thin' },
+                    bottom: { style: 'thin' },
+                    right: { style: 'thin' },
+                }
+            }
+        }
+
         // Generate and save the Excel file
         const buffer = await workbook.xlsx.writeBuffer()
         saveAs(new Blob([buffer]), 'DH.xlsx')
