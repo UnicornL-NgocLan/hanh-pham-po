@@ -1739,6 +1739,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             worksheet.mergeCells(`C${r}:F${r}`)
             worksheet.mergeCells(`G${r}:H${r}`)
             worksheet.mergeCells(`I${r}:M${r}`)
+            worksheet.getRow(r).height = 60
         }
 
         for (let r = endNumRow + 25; r <= endNumRow + 29; r++) {
