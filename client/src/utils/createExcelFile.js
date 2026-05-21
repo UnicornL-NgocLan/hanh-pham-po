@@ -1703,6 +1703,9 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
             horizontal: 'center',
         }
+
+        worksheet.getRow(endNumRow + 23).addPageBreak()
+
         worksheet.mergeCells(`B${endNumRow + 24}:M${endNumRow + 24}`)
         worksheet.getCell(`B${endNumRow + 24}`).value =
             'Ghi chú phụ lục/văn bản thỏa thuận đính kèm (nếu có):'
