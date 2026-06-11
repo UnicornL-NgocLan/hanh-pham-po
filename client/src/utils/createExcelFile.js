@@ -752,7 +752,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
 
         worksheet.mergeCells('C2:M2')
         worksheet.getCell('C2').value =
-            `(Thay cho phụ kiện của Hợp đồng nguyên tắc số: ${po?.replacedForContract})`
+            `(Thay cho phụ kiện của)`
         // Apply font style
         worksheet.getCell('C2').font = {
             name: 'Times New Roman',
@@ -799,17 +799,6 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell('A7').value =
-            `Căn cứ vào bảng đề nghị mua vật tư: Số đề nghị ${po?.pr_name} của Phòng Kinh Doanh`
-        // Apply font style
-        worksheet.getCell('A7').font = {
-            name: 'Times New Roman',
-            size: 18,
-        }
-        worksheet.getCell('A7').alignment = {
-            vertical: 'middle',
-        }
-
         let dateString = ''
 
         let dateList = [
@@ -838,8 +827,19 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
                     ', '
             }
         }
+        worksheet.getCell('A7').value =
+            `Căn cứ Hợp đồng nguyên tắc số: ${po?.replacedForContract}`
+        // Apply font style
+        worksheet.getCell('A7').font = {
+            name: 'Times New Roman',
+            size: 18,
+        }
+        worksheet.getCell('A7').alignment = {
+            vertical: 'middle',
+        }
+
         worksheet.getCell('A8').value =
-            `Căn cứ vào bảng báo giá ngày ${dateString} của ${po?.partner_id?.name}`
+            `Căn cứ vào bảng báo giá ngày ${dateString} của ${po?.partner_id?.name}`
         // Apply font style
         worksheet.getCell('A8').font = {
             name: 'Times New Roman',
@@ -849,7 +849,18 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell('A9').value = {
+        worksheet.getCell('A9').value =
+            `Căn cứ vào bảng đề nghị mua vật tư: Số đề nghị ${po?.pr_name} của Phòng Kinh Doanh`
+        // Apply font style
+        worksheet.getCell('A9').font = {
+            name: 'Times New Roman',
+            size: 18,
+        }
+        worksheet.getCell('A9').alignment = {
+            vertical: 'middle',
+        }
+
+        worksheet.getCell('A10').value = {
             richText: [
                 {
                     text: 'BÊN MUA: ',
@@ -866,11 +877,11 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
                 },
             ],
         }
-        worksheet.getCell('A9').alignment = {
+        worksheet.getCell('A10').alignment = {
             vertical: 'middle',
         }
-        worksheet.mergeCells('H9:M9')
-        worksheet.getCell('H9').value = {
+        worksheet.mergeCells('H10:M10')
+        worksheet.getCell('H10').value = {
             richText: [
                 {
                     text: 'BÊN BÁN: ',
@@ -888,37 +899,13 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             ],
         }
 
-        worksheet.getCell('H9').alignment = {
-            vertical: 'middle',
-        }
-
-        worksheet.getCell('A10').value = `Địa chỉ: ${
-            po?.customer_id?.address || ''
-        }, ${po?.customer_id?.district || ''}`
-        // Apply font style
-        worksheet.getCell('A10').font = {
-            name: 'Times New Roman',
-            size: 18,
-        }
-        worksheet.getCell('A10').alignment = {
-            vertical: 'middle',
-        }
-
-        worksheet.getCell('H10').value = `Địa chỉ: ${
-            po?.partner_id?.address || ''
-        },`
-        // Apply font style
-        worksheet.getCell('H10').font = {
-            name: 'Times New Roman',
-            size: 18,
-        }
         worksheet.getCell('H10').alignment = {
             vertical: 'middle',
         }
 
-        worksheet.getCell('A11').value = `${po?.customer_id?.city || ''}, ${
-            po?.customer_id?.country || ''
-        }`
+        worksheet.getCell('A11').value = `Địa chỉ: ${
+            po?.customer_id?.address || ''
+        }, ${po?.customer_id?.district || ''}`
         // Apply font style
         worksheet.getCell('A11').font = {
             name: 'Times New Roman',
@@ -928,9 +915,9 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell('H11').value = `${po?.partner_id?.district || ''}, ${
-            po?.partner_id?.city || ''
-        }, ${po?.partner_id?.country || ''}`
+        worksheet.getCell('H11').value = `Địa chỉ: ${
+            po?.partner_id?.address || ''
+        },`
         // Apply font style
         worksheet.getCell('H11').font = {
             name: 'Times New Roman',
@@ -940,8 +927,8 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell('A12').value = `Mã số thuế: ${
-            po?.customer_id?.vat || ''
+        worksheet.getCell('A12').value = `${po?.customer_id?.city || ''}, ${
+            po?.customer_id?.country || ''
         }`
         // Apply font style
         worksheet.getCell('A12').font = {
@@ -952,9 +939,9 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell('H12').value = `Mã số thuế: ${
-            po?.partner_id?.vat || ''
-        }`
+        worksheet.getCell('H12').value = `${po?.partner_id?.district || ''}, ${
+            po?.partner_id?.city || ''
+        }, ${po?.partner_id?.country || ''}`
         // Apply font style
         worksheet.getCell('H12').font = {
             name: 'Times New Roman',
@@ -964,8 +951,8 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell('A13').value = `Điện thoại: ${
-            po?.customer_id?.phone || ''
+        worksheet.getCell('A13').value = `Mã số thuế: ${
+            po?.customer_id?.vat || ''
         }`
         // Apply font style
         worksheet.getCell('A13').font = {
@@ -976,8 +963,8 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell('H13').value = `Điện thoại: ${
-            po?.partner_id?.phone || ''
+        worksheet.getCell('H13').value = `Mã số thuế: ${
+            po?.partner_id?.vat || ''
         }`
         // Apply font style
         worksheet.getCell('H13').font = {
@@ -988,7 +975,9 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell('A14').value = `Fax: ${po?.customer_id?.fax || ''}`
+        worksheet.getCell('A14').value = `Điện thoại: ${
+            po?.customer_id?.phone || ''
+        }`
         // Apply font style
         worksheet.getCell('A14').font = {
             name: 'Times New Roman',
@@ -998,7 +987,9 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell('H14').value = `Fax: ${po?.partner_id?.fax || ''}`
+        worksheet.getCell('H14').value = `Điện thoại: ${
+            po?.partner_id?.phone || ''
+        }`
         // Apply font style
         worksheet.getCell('H14').font = {
             name: 'Times New Roman',
@@ -1008,9 +999,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell('A15').value = `Tài khoản: ${
-            po?.customer_id?.accountNumber || ''
-        }`
+        worksheet.getCell('A15').value = `Fax: ${po?.customer_id?.fax || ''}`
         // Apply font style
         worksheet.getCell('A15').font = {
             name: 'Times New Roman',
@@ -1020,9 +1009,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell('H15').value = `Tài khoản: ${
-            po?.partner_id?.accountNumber || ''
-        }`
+        worksheet.getCell('H15').value = `Fax: ${po?.partner_id?.fax || ''}`
         // Apply font style
         worksheet.getCell('H15').font = {
             name: 'Times New Roman',
@@ -1032,7 +1019,31 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell('A16').value = {
+        worksheet.getCell('A16').value = `Tài khoản: ${
+            po?.customer_id?.accountNumber || ''
+        }`
+        // Apply font style
+        worksheet.getCell('A16').font = {
+            name: 'Times New Roman',
+            size: 18,
+        }
+        worksheet.getCell('A16').alignment = {
+            vertical: 'middle',
+        }
+
+        worksheet.getCell('H16').value = `Tài khoản: ${
+            po?.partner_id?.accountNumber || ''
+        }`
+        // Apply font style
+        worksheet.getCell('H16').font = {
+            name: 'Times New Roman',
+            size: 18,
+        }
+        worksheet.getCell('H16').alignment = {
+            vertical: 'middle',
+        }
+
+        worksheet.getCell('A17').value = {
             richText: [
                 {
                     text: 'Tại: ',
@@ -1048,15 +1059,15 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             ],
         }
         // Apply font style
-        worksheet.getCell('A16').font = {
+        worksheet.getCell('A17').font = {
             name: 'Times New Roman',
             size: 18,
         }
-        worksheet.getCell('A16').alignment = {
+        worksheet.getCell('A17').alignment = {
             vertical: 'middle',
         }
 
-        worksheet.getCell('H16').value = {
+        worksheet.getCell('H17').value = {
             richText: [
                 {
                     text: 'Tại: ',
@@ -1072,66 +1083,66 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             ],
         }
         // Apply font style
-        worksheet.getCell('H16').font = {
+        worksheet.getCell('H17').font = {
             name: 'Times New Roman',
             size: 17,
         }
-        worksheet.getCell('H16').alignment = {
+        worksheet.getCell('H17').alignment = {
             vertical: 'middle',
         }
 
-        for (let row = 9; row <= 16; row++) {
+        for (let row = 10; row <= 17; row++) {
             const cell = worksheet.getRow(row).getCell(1)
             cell.border = {
                 left: { style: 'thin' },
             }
         }
 
-        for (let row = 9; row <= 16; row++) {
+        for (let row = 10; row <= 17; row++) {
             const cell = worksheet.getRow(row).getCell(13)
             cell.border = {
                 right: { style: 'thin' },
             }
         }
 
-        worksheet.getCell('A9').border = {
+        worksheet.getCell('A10').border = {
             left: { style: 'thin' },
             top: { style: 'thin' },
         }
 
-        worksheet.getCell('A16').border = {
+        worksheet.getCell('A17').border = {
             left: { style: 'thin' },
             bottom: { style: 'thin' },
         }
 
-        worksheet.getCell('H9').border = {
+        worksheet.getCell('H10').border = {
             right: { style: 'thin' },
             top: { style: 'thin' },
         }
 
-        worksheet.getCell('M16').border = {
+        worksheet.getCell('M17').border = {
             right: { style: 'thin' },
             bottom: { style: 'thin' },
         }
 
-        worksheet.getCell('G9').border = {
+        worksheet.getCell('G10').border = {
             top: { style: 'thin' },
             right: { style: 'thin' },
         }
 
-        worksheet.getCell('G16').border = {
+        worksheet.getCell('G17').border = {
             bottom: { style: 'thin' },
             right: { style: 'thin' },
         }
 
-        for (let row = 10; row <= 15; row++) {
+        for (let row = 11; row <= 16; row++) {
             const cell = worksheet.getRow(row).getCell(7)
             cell.border = {
                 right: { style: 'thin' },
             }
         }
 
-        for (let row = 10; row <= 15; row++) {
+        for (let row = 11; row <= 16; row++) {
             const cell = worksheet.getRow(row).getCell(7)
             cell.border = {
                 right: { style: 'thin' },
@@ -1139,126 +1150,126 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         }
 
         for (let col = 2; col <= 6; col++) {
-            const cell = worksheet.getRow(9).getCell(col)
+            const cell = worksheet.getRow(10).getCell(col)
             cell.border = {
                 top: { style: 'thin' },
             }
         }
 
         for (let col = 2; col <= 6; col++) {
-            const cell = worksheet.getRow(16).getCell(col)
+            const cell = worksheet.getRow(17).getCell(col)
             cell.border = {
                 bottom: { style: 'thin' },
             }
         }
 
         for (let col = 8; col <= 12; col++) {
-            const cell = worksheet.getRow(16).getCell(col)
+            const cell = worksheet.getRow(17).getCell(col)
             cell.border = {
                 bottom: { style: 'thin' },
             }
         }
 
-        worksheet.getCell('A18').value = `Số TT`
+        worksheet.getCell('A19').value = `Số TT`
         // Apply font style
-        worksheet.getCell('A18').font = {
+        worksheet.getCell('A19').font = {
             name: 'Times New Roman',
             size: 18,
         }
-        worksheet.getCell('A18').alignment = {
+        worksheet.getCell('A19').alignment = {
             vertical: 'middle',
             horizontal: 'center',
             wrapText: true,
         }
 
-        worksheet.mergeCells('B18:D18')
-        worksheet.getCell('B18').value = `Tên vật tư bao bì`
+        worksheet.mergeCells('B19:D19')
+        worksheet.getCell('B19').value = `Tên vật tư bao bì`
         // Apply font style
-        worksheet.getCell('B18').font = {
+        worksheet.getCell('B19').font = {
             name: 'Times New Roman',
             size: 18,
         }
-        worksheet.getCell('B18').alignment = {
+        worksheet.getCell('B19').alignment = {
             vertical: 'middle',
             horizontal: 'center',
             wrapText: true,
         }
 
-        worksheet.mergeCells('E18:F18')
-        worksheet.getCell('E18').value = `ĐVT`
+        worksheet.mergeCells('E19:F19')
+        worksheet.getCell('E19').value = `ĐVT`
         // Apply font style
-        worksheet.getCell('E18').font = {
+        worksheet.getCell('E19').font = {
             name: 'Times New Roman',
             size: 18,
         }
-        worksheet.getCell('E18').alignment = {
+        worksheet.getCell('E19').alignment = {
             vertical: 'middle',
             horizontal: 'center',
             wrapText: true,
         }
 
-        worksheet.mergeCells('G18:I18')
-        worksheet.getCell('G18').value = `Chất lượng tiêu chuẩn`
+        worksheet.mergeCells('G19:I19')
+        worksheet.getCell('G19').value = `Chất lượng tiêu chuẩn`
         // Apply font style
-        worksheet.getCell('G18').font = {
+        worksheet.getCell('G19').font = {
             name: 'Times New Roman',
             size: 18,
         }
-        worksheet.getCell('G18').alignment = {
+        worksheet.getCell('G19').alignment = {
             vertical: 'middle',
             horizontal: 'center',
             wrapText: true,
         }
 
-        worksheet.getCell('J18').value = `Quy cách (cm)`
+        worksheet.getCell('J19').value = `Quy cách (cm)`
         // Apply font style
-        worksheet.getCell('J18').font = {
+        worksheet.getCell('J19').font = {
             name: 'Times New Roman',
             size: 18,
         }
-        worksheet.getCell('J18').alignment = {
+        worksheet.getCell('J19').alignment = {
             vertical: 'middle',
             horizontal: 'center',
             wrapText: true,
         }
 
-        worksheet.getCell('K18').value = `Số lượng`
+        worksheet.getCell('K19').value = `Số lượng`
         // Apply font style
-        worksheet.getCell('K18').font = {
+        worksheet.getCell('K19').font = {
             name: 'Times New Roman',
             size: 18,
         }
-        worksheet.getCell('K18').alignment = {
+        worksheet.getCell('K19').alignment = {
             vertical: 'middle',
             horizontal: 'center',
             wrapText: true,
         }
 
-        worksheet.getCell('L18').value = `Đơn giá VNĐ (chưa thuế)`
+        worksheet.getCell('L19').value = `Đơn giá VNĐ (chưa thuế)`
         // Apply font style
-        worksheet.getCell('L18').font = {
+        worksheet.getCell('L19').font = {
             name: 'Times New Roman',
             size: 16,
         }
-        worksheet.getCell('L18').alignment = {
+        worksheet.getCell('L19').alignment = {
             vertical: 'middle',
             horizontal: 'center',
             wrapText: true,
         }
 
-        worksheet.getCell('M18').value = `Thành tiền (VNĐ)`
+        worksheet.getCell('M19').value = `Thành tiền (VNĐ)`
         // Apply font style
-        worksheet.getCell('M18').font = {
+        worksheet.getCell('M19').font = {
             name: 'Times New Roman',
             size: 18,
         }
-        worksheet.getCell('M18').alignment = {
+        worksheet.getCell('M19').alignment = {
             vertical: 'middle',
             horizontal: 'center',
             wrapText: true,
         }
 
-        worksheet.getRow(18).height = 60
+        worksheet.getRow(19).height = 60
         worksheet.getColumn(1).width = 5
         worksheet.getColumn(2).width = 26
         worksheet.getColumn(5).width = 5
@@ -1289,7 +1300,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
 
         const listOfColumn = ['A', 'B', 'E', 'G', 'J', 'K', 'L', 'M']
         for (let i = 0; i < grouppedData.length; i++) {
-            let rowNum = 19 + i
+            let rowNum = 20 + i
             for (let j = 0; j < listOfColumn.length; j++) {
                 let cellValue = ''
                 switch (listOfColumn[j]) {
@@ -1352,7 +1363,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             }
         }
 
-        let endNumRow = 18 + grouppedData.length
+        let endNumRow = 19 + grouppedData.length
 
         worksheet.mergeCells(`A${endNumRow + 1}:L${endNumRow + 1}`)
         worksheet.getCell(`A${endNumRow + 1}`).value =
@@ -1431,7 +1442,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         worksheet.getCell(`M${endNumRow + 3}`).numFmt = '#,##0'
         worksheet.getRow(endNumRow + 3).height = 40
 
-        for (let row = 18; row <= endNumRow + 3; row++) {
+        for (let row = 19; row <= endNumRow + 3; row++) {
             for (let col = 1; col <= 13; col++) {
                 const cell = worksheet.getRow(row).getCell(col)
                 cell.border = {
@@ -1543,21 +1554,25 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             size: 18,
         }
         worksheet.getCell(`A${endNumRow + 7}`).alignment = {
-            vertical: 'middle',
-            horizontal: 'center',
+            vertical: 'top',
             wrapText: true,
+            horizontal: 'center',
         }
 
+        worksheet.mergeCells(`B${endNumRow + 7}:M${endNumRow + 7}`)
         worksheet.getCell(`B${endNumRow + 7}`).value =
-            `Hình thức và thời hạn thanh toán: Căn cứ theo Hợp Đồng Nguyên Tắc đã ký`
+            'Khi giao hàng thì bên bán phải đóng gói thành kiện theo từng qui cách, chủng loại với số lượng từng kiện phải giống nhau và phải ghi rõ trọng lượng của từng kiện hàng. Nếu có số lượng lẻ sẽ được giao trong đợt giao hàng cuối cùng. Bên bán phải thông báo cho người mua hàng và thủ kho ít nhất 1 ngày trước khi giao hàng để bên mua bố trí người sắp xếp kho bãi nhận hàng. Khi giao hàng bên bán phải gửi phiếu giao nhận hàng hóa cùng kiện hàng cho thủ kho Xí nghiệp An Phú. Phiếu giao nhận hàng hóa phải có ký, ghi họ tên bên giao, ghi đầy đủ tên hàng hóa,quy cách số lượng thực tế hàng được giao và kèm theo số đơn đặt hàng. Nếu số lượng giao không khớp đúng với hóa đơn, phiếu giao hàng thì bên mua được quyền không thanh toán cho bên bán hóa đơn này.'
         // Apply font style
         worksheet.getCell(`B${endNumRow + 7}`).font = {
             name: 'Times New Roman',
             size: 18,
         }
         worksheet.getCell(`B${endNumRow + 7}`).alignment = {
-            vertical: 'middle',
+            vertical: 'top',
+            wrapText: true,
         }
+
+        worksheet.getRow(endNumRow + 7).height = 190
 
         worksheet.getCell(`A${endNumRow + 8}`).value = '5.'
         // Apply font style
@@ -1566,25 +1581,25 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             size: 18,
         }
         worksheet.getCell(`A${endNumRow + 8}`).alignment = {
-            vertical: 'top',
             wrapText: true,
+            vertical: 'top',
             horizontal: 'center',
         }
 
         worksheet.mergeCells(`B${endNumRow + 8}:M${endNumRow + 8}`)
         worksheet.getCell(`B${endNumRow + 8}`).value =
-            'Khi giao hàng thì bên bán phải đóng gói thành kiện theo từng qui cách, chủng loại với số lượng từng kiện phải giống nhau và phải ghi rõ trọng lượng của từng kiện hàng. Nếu có số lượng lẻ sẽ được giao trong đợt giao hàng cuối cùng. Bên bán phải thông báo cho người mua hàng và thủ kho ít nhất 1 ngày trước khi giao hàng để bên mua bố trí người sắp xếp kho bãi nhận hàng. Khi giao hàng bên bán phải gửi phiếu giao nhận hàng hóa cùng kiện hàng cho thủ kho Xí nghiệp An Phú. Phiếu giao nhận hàng hóa phải có ký, ghi họ tên bên giao, ghi đầy đủ tên hàng hóa,quy cách số lượng thực tế hàng được giao và kèm theo số đơn đặt hàng. Nếu số lượng giao không khớp đúng với hóa đơn, phiếu giao hàng thì bên mua được quyền không thanh toán cho bên bán hóa đơn này.'
+            'Ðiều khoản chung: Hai bên cam kết rằng sẽ giao hàng và nhận hàng đúng số lượng, chất lượng, quy cách, tiêu chuẩn và thời hạn giao - nhận. Nếu bên nào đơn phương hủy bỏ đơn đặt hàng thì phải bồi thường thiệt hại cho bên kia theo giá thời điểm. '
         // Apply font style
         worksheet.getCell(`B${endNumRow + 8}`).font = {
             name: 'Times New Roman',
             size: 18,
         }
         worksheet.getCell(`B${endNumRow + 8}`).alignment = {
-            vertical: 'top',
             wrapText: true,
+            vertical: 'top',
         }
 
-        worksheet.getRow(endNumRow + 8).height = 190
+        worksheet.getRow(endNumRow + 8).height = 60
 
         worksheet.getCell(`A${endNumRow + 9}`).value = '6.'
         // Apply font style
@@ -1600,7 +1615,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
 
         worksheet.mergeCells(`B${endNumRow + 9}:M${endNumRow + 9}`)
         worksheet.getCell(`B${endNumRow + 9}`).value =
-            'Ðiều khoản chung: Hai bên cam kết rằng sẽ giao hàng và nhận hàng đúng số lượng, chất lượng, quy cách, tiêu chuẩn và thời hạn giao - nhận. Nếu bên nào đơn phương hủy bỏ đơn đặt hàng thì phải bồi thường thiệt hại cho bên kia theo giá thời điểm. '
+            'Nếu có thay đổi về thời gian giao hàng thì nhân viên mua hàng sẽ thông báo bằng email cho bên bán. Trường hợp vi phạm hợp đồng  (nếu có) tiền phạt sẽ thanh toán bù trừ công nợ'
         // Apply font style
         worksheet.getCell(`B${endNumRow + 9}`).font = {
             name: 'Times New Roman',
@@ -1621,13 +1636,12 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         }
         worksheet.getCell(`A${endNumRow + 10}`).alignment = {
             wrapText: true,
-            vertical: 'top',
             horizontal: 'center',
         }
 
         worksheet.mergeCells(`B${endNumRow + 10}:M${endNumRow + 10}`)
         worksheet.getCell(`B${endNumRow + 10}`).value =
-            'Nếu có thay đổi về thời gian giao hàng thì nhân viên mua hàng sẽ thông báo bằng email cho bên bán. Trường hợp vi phạm hợp đồng  (nếu có) tiền phạt sẽ thanh toán bù trừ công nợ'
+            'Ðơn đặt hàng có giá trị qua Fax và được xác nhận bằng chữ ký có thẩm quyền của hai bên.'
         // Apply font style
         worksheet.getCell(`B${endNumRow + 10}`).font = {
             name: 'Times New Roman',
@@ -1635,25 +1649,11 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         }
         worksheet.getCell(`B${endNumRow + 10}`).alignment = {
             wrapText: true,
-            vertical: 'top',
-        }
-
-        worksheet.getRow(endNumRow + 10).height = 60
-
-        worksheet.getCell(`A${endNumRow + 11}`).value = '8.'
-        // Apply font style
-        worksheet.getCell(`A${endNumRow + 11}`).font = {
-            name: 'Times New Roman',
-            size: 18,
-        }
-        worksheet.getCell(`A${endNumRow + 11}`).alignment = {
-            wrapText: true,
-            horizontal: 'center',
         }
 
         worksheet.mergeCells(`B${endNumRow + 11}:M${endNumRow + 11}`)
         worksheet.getCell(`B${endNumRow + 11}`).value =
-            'Ðơn đặt hàng có giá trị qua Fax và được xác nhận bằng chữ ký có thẩm quyền của hai bên.'
+            'Lưu ý: Trường hợp có phát sinh phụ lục/văn bản thỏa thuận sau khi ký hợp đồng, thì bản hợp đồng của Stapimex lưu giữ sẽ được đại diện Stapimex ghi nhận cụ thể tại phần ghi chú bên dưới. (Bản hợp đồng của Bên đối tác lưu giữ có thể ghi hoặc không, tùy theo yêu cầu quản lý của đối tác).'
         // Apply font style
         worksheet.getCell(`B${endNumRow + 11}`).font = {
             name: 'Times New Roman',
@@ -1661,11 +1661,13 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         }
         worksheet.getCell(`B${endNumRow + 11}`).alignment = {
             wrapText: true,
+            vertical: 'top',
         }
 
-        worksheet.mergeCells(`B${endNumRow + 12}:M${endNumRow + 12}`)
-        worksheet.getCell(`B${endNumRow + 12}`).value =
-            'Lưu ý: Trường hợp có phát sinh phụ lục/văn bản thỏa thuận sau khi ký hợp đồng, thì bản hợp đồng của Stapimex lưu giữ sẽ được đại diện Stapimex ghi nhận cụ thể tại phần ghi chú bên dưới. (Bản hợp đồng của Bên đối tác lưu giữ có thể ghi hoặc không, tùy theo yêu cầu quản lý của đối tác).'
+        worksheet.getRow(endNumRow + 11).height = 90
+
+        worksheet.mergeCells(`B${endNumRow + 12}:E${endNumRow + 12}`)
+        worksheet.getCell(`B${endNumRow + 12}`).value = 'ĐẠI DIỆN BÊN MUA'
         // Apply font style
         worksheet.getCell(`B${endNumRow + 12}`).font = {
             name: 'Times New Roman',
@@ -1673,79 +1675,65 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         }
         worksheet.getCell(`B${endNumRow + 12}`).alignment = {
             wrapText: true,
-            vertical: 'top',
+            vertical: 'middle',
+            horizontal: 'center',
         }
 
-        worksheet.getRow(endNumRow + 12).height = 90
-
-        worksheet.mergeCells(`B${endNumRow + 13}:E${endNumRow + 13}`)
-        worksheet.getCell(`B${endNumRow + 13}`).value = 'ĐẠI DIỆN BÊN MUA'
+        worksheet.mergeCells(`I${endNumRow + 12}:M${endNumRow + 12}`)
+        worksheet.getCell(`I${endNumRow + 12}`).value = 'ĐẠI DIỆN BÊN BÁN'
         // Apply font style
-        worksheet.getCell(`B${endNumRow + 13}`).font = {
+        worksheet.getCell(`I${endNumRow + 12}`).font = {
             name: 'Times New Roman',
             size: 18,
         }
-        worksheet.getCell(`B${endNumRow + 13}`).alignment = {
+        worksheet.getCell(`I${endNumRow + 12}`).alignment = {
             wrapText: true,
             vertical: 'middle',
             horizontal: 'center',
         }
 
-        worksheet.mergeCells(`I${endNumRow + 13}:M${endNumRow + 13}`)
-        worksheet.getCell(`I${endNumRow + 13}`).value = 'ĐẠI DIỆN BÊN BÁN'
-        // Apply font style
-        worksheet.getCell(`I${endNumRow + 13}`).font = {
-            name: 'Times New Roman',
-            size: 18,
-        }
-        worksheet.getCell(`I${endNumRow + 13}`).alignment = {
-            wrapText: true,
-            vertical: 'middle',
-            horizontal: 'center',
-        }
+        worksheet.getRow(endNumRow + 22).addPageBreak()
 
-        worksheet.getRow(endNumRow + 23).addPageBreak()
-
-        worksheet.mergeCells(`B${endNumRow + 24}:M${endNumRow + 24}`)
-        worksheet.getCell(`B${endNumRow + 24}`).value =
+        worksheet.mergeCells(`B${endNumRow + 23}:M${endNumRow + 23}`)
+        worksheet.getCell(`B${endNumRow + 23}`).value =
             'Ghi chú phụ lục/văn bản thỏa thuận đính kèm (nếu có):'
-        worksheet.getCell(`B${endNumRow + 24}`).font = {
+        worksheet.getCell(`B${endNumRow + 23}`).font = {
             name: 'Times New Roman',
             size: 18,
         }
-        worksheet.getCell(`B${endNumRow + 24}`).alignment = {
+        worksheet.getCell(`B${endNumRow + 23}`).alignment = {
             vertical: 'middle',
         }
 
-        worksheet.getCell(`B${endNumRow + 25}`).value = 'STT'
-        worksheet.mergeCells(`C${endNumRow + 25}:F${endNumRow + 25}`)
-        worksheet.getCell(`C${endNumRow + 25}`).value =
+        worksheet.getCell(`B${endNumRow + 24}`).value = 'STT'
+        worksheet.mergeCells(`C${endNumRow + 24}:F${endNumRow + 24}`)
+        worksheet.getCell(`C${endNumRow + 24}`).value =
             'Số phụ lục/văn bản thoả thuận'
-        worksheet.mergeCells(`G${endNumRow + 25}:H${endNumRow + 25}`)
-        worksheet.getCell(`G${endNumRow + 25}`).value = 'Ngày ký'
-        worksheet.mergeCells(`I${endNumRow + 25}:M${endNumRow + 25}`)
-        worksheet.getCell(`I${endNumRow + 25}`).value =
+        worksheet.mergeCells(`G${endNumRow + 24}:H${endNumRow + 24}`)
+        worksheet.getCell(`G${endNumRow + 24}`).value = 'Ngày ký'
+        worksheet.mergeCells(`I${endNumRow + 24}:M${endNumRow + 24}`)
+        worksheet.getCell(`I${endNumRow + 24}`).value =
             'Xác nhận của đại diện STAPIMEX/ Đối tác'
 
         for (let col of ['B', 'C', 'G', 'I']) {
-            worksheet.getCell(`${col}${endNumRow + 25}`).font = {
+            worksheet.getCell(`${col}${endNumRow + 24}`).font = {
                 name: 'Times New Roman',
                 size: 18,
             }
-            worksheet.getCell(`${col}${endNumRow + 25}`).alignment = {
+            worksheet.getCell(`${col}${endNumRow + 24}`).alignment = {
                 vertical: 'middle',
                 horizontal: col === 'G' ? 'center' : 'left',
             }
         }
 
-        for (let r = endNumRow + 26; r <= endNumRow + 29; r++) {
+        for (let r = endNumRow + 25; r <= endNumRow + 28; r++) {
             worksheet.mergeCells(`C${r}:F${r}`)
             worksheet.mergeCells(`G${r}:H${r}`)
             worksheet.mergeCells(`I${r}:M${r}`)
             worksheet.getRow(r).height = 60
         }
 
-        for (let r = endNumRow + 25; r <= endNumRow + 29; r++) {
+        for (let r = endNumRow + 24; r <= endNumRow + 28; r++) {
             for (let c = 2; c <= 13; c++) {
                 const cell = worksheet.getRow(r).getCell(c)
                 cell.border = {
