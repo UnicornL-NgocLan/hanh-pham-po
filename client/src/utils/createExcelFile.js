@@ -764,14 +764,20 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         }
 
         worksheet.mergeCells('C3:M3')
-        worksheet.getCell('C3').value = `(BM 07/QTPB-KD-03)`
-        // Apply font style
-        worksheet.getCell('C3').font = {
-            name: 'Times New Roman',
-            size: 18,
+        worksheet.getCell('C3').value = {
+            richText: [
+                {
+                    text: '                                                                     (BM 07/QTPB-KD-03)          ',
+                    font: { name: 'Times New Roman', size: 17 },
+                },
+                {
+                    text: `(ĐN: ${po?.pr_name} của PKD)`,
+                    font: { name: 'Times New Roman', size: 14 },
+                },
+            ],
         }
         worksheet.getCell('C3').alignment = {
-            horizontal: 'center',
+            // horizontal: 'center',
             vertical: 'middle',
         }
 
@@ -849,16 +855,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell('A9').value =
-            `Căn cứ vào bảng đề nghị mua vật tư: Số đề nghị ${po?.pr_name} của Phòng Kinh Doanh`
-        // Apply font style
-        worksheet.getCell('A9').font = {
-            name: 'Times New Roman',
-            size: 18,
-        }
-        worksheet.getCell('A9').alignment = {
-            vertical: 'middle',
-        }
+
 
         worksheet.getCell('A10').value = {
             richText: [
@@ -1491,7 +1488,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         }
 
         worksheet.getCell(`D${endNumRow + 4}`).value =
-            `Địa điểm giao nhận: Kho bên mua`
+            `Địa điểm giao nhận: Kho bên mua - Lô N, Khu Công Nghiệp An Nghiệp, An Ninh, Cần Thơ.`
         // Apply font style
         worksheet.getCell(`D${endNumRow + 4}`).font = {
             name: 'Times New Roman',
@@ -1561,7 +1558,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
 
         worksheet.mergeCells(`B${endNumRow + 7}:M${endNumRow + 7}`)
         worksheet.getCell(`B${endNumRow + 7}`).value =
-            'Khi giao hàng thì bên bán phải đóng gói thành kiện theo từng qui cách, chủng loại với số lượng từng kiện phải giống nhau và phải ghi rõ trọng lượng của từng kiện hàng. Nếu có số lượng lẻ sẽ được giao trong đợt giao hàng cuối cùng. Bên bán phải thông báo cho người mua hàng và thủ kho ít nhất 1 ngày trước khi giao hàng để bên mua bố trí người sắp xếp kho bãi nhận hàng. Khi giao hàng bên bán phải gửi phiếu giao nhận hàng hóa cùng kiện hàng cho thủ kho Xí nghiệp An Phú. Phiếu giao nhận hàng hóa phải có ký, ghi họ tên bên giao, ghi đầy đủ tên hàng hóa,quy cách số lượng thực tế hàng được giao và kèm theo số đơn đặt hàng. Nếu số lượng giao không khớp đúng với hóa đơn, phiếu giao hàng thì bên mua được quyền không thanh toán cho bên bán hóa đơn này.'
+            'Khi giao hàng thì bên bán phải đóng gói thành kiện theo từng qui cách, chủng loại với số lượng từng kiện phải giống nhau và phải ghi rõ trọng lượng của từng kiện hàng. Nếu có số lượng lẻ sẽ được giao trong đợt giao hàng cuối cùng. Bên bán phải thông báo cho Stapimex và thủ kho qua điện thoại hoặc email (khovattu_bb@stapimex.com.vn) ít nhất 1 ngày trước khi giao hàng để bên mua bố trí người sắp xếp kho bãi nhận hàng. Khi giao hàng bên bán phải gửi phiếu giao nhận hàng hóa cùng kiện hàng cho thủ kho bao bì Tổng tại địa chỉ: Lô N, Khu Công Nghiệp An Nghiệp, An Ninh, Cần Thơ. '
         // Apply font style
         worksheet.getCell(`B${endNumRow + 7}`).font = {
             name: 'Times New Roman',
@@ -1572,7 +1569,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             wrapText: true,
         }
 
-        worksheet.getRow(endNumRow + 7).height = 190
+        worksheet.getRow(endNumRow + 7).height = 150
 
         worksheet.getCell(`A${endNumRow + 8}`).value = '5.'
         // Apply font style
@@ -1588,7 +1585,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
 
         worksheet.mergeCells(`B${endNumRow + 8}:M${endNumRow + 8}`)
         worksheet.getCell(`B${endNumRow + 8}`).value =
-            'Ðiều khoản chung: Hai bên cam kết rằng sẽ giao hàng và nhận hàng đúng số lượng, chất lượng, quy cách, tiêu chuẩn và thời hạn giao - nhận. Nếu bên nào đơn phương hủy bỏ đơn đặt hàng thì phải bồi thường thiệt hại cho bên kia theo giá thời điểm. '
+            'Nếu có thay đổi về thời gian giao hàng thì nhân viên mua hàng sẽ thông báo bằng email cho bên bán. '
         // Apply font style
         worksheet.getCell(`B${endNumRow + 8}`).font = {
             name: 'Times New Roman',
@@ -1599,7 +1596,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'top',
         }
 
-        worksheet.getRow(endNumRow + 8).height = 60
+        worksheet.getRow(endNumRow + 8).height = 40
 
         worksheet.getCell(`A${endNumRow + 9}`).value = '6.'
         // Apply font style
@@ -1615,18 +1612,19 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
 
         worksheet.mergeCells(`B${endNumRow + 9}:M${endNumRow + 9}`)
         worksheet.getCell(`B${endNumRow + 9}`).value =
-            'Nếu có thay đổi về thời gian giao hàng thì nhân viên mua hàng sẽ thông báo bằng email cho bên bán. Trường hợp vi phạm hợp đồng  (nếu có) tiền phạt sẽ thanh toán bù trừ công nợ'
+            'Trong trường hợp hàng hóa được giao thành nhiều đợt, trên Đơn đặt hàng phải ghi rõ số lượng giao của từng đợt vào Bảng Ghi chú bên dưới. Đồng thời, trên Phiếu giao hàng phải thể hiện nội dung giao hàng tương ứng cụ thể: Phiếu giao hàng đợt 1 ghi: “Giao hàng đợt 1: ... (số lượng)”, Phiếu giao hàng đợt cuối ghi: “Giao hàng đợt thứ ... (đợt cuối): ... (số lượng)”. '
         // Apply font style
         worksheet.getCell(`B${endNumRow + 9}`).font = {
             name: 'Times New Roman',
             size: 18,
+            bold:true
         }
         worksheet.getCell(`B${endNumRow + 9}`).alignment = {
             wrapText: true,
             vertical: 'top',
         }
 
-        worksheet.getRow(endNumRow + 9).height = 60
+        worksheet.getRow(endNumRow + 9).height = 120
 
         worksheet.getCell(`A${endNumRow + 10}`).value = '7.'
         // Apply font style
@@ -1637,11 +1635,12 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         worksheet.getCell(`A${endNumRow + 10}`).alignment = {
             wrapText: true,
             horizontal: 'center',
+            vertical: 'top',
         }
 
         worksheet.mergeCells(`B${endNumRow + 10}:M${endNumRow + 10}`)
         worksheet.getCell(`B${endNumRow + 10}`).value =
-            'Ðơn đặt hàng có giá trị qua Fax và được xác nhận bằng chữ ký có thẩm quyền của hai bên.'
+            'Bên bán xuất hoá đơn tương ứng với số lượng từng lần giao hàng. Nếu hóa đơn không khớp đúng với số lượng giao, phiếu giao hàng thì bên mua được quyền không thanh toán cho bên bán hóa đơn này.'
         // Apply font style
         worksheet.getCell(`B${endNumRow + 10}`).font = {
             name: 'Times New Roman',
@@ -1649,22 +1648,10 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         }
         worksheet.getCell(`B${endNumRow + 10}`).alignment = {
             wrapText: true,
-        }
-
-        worksheet.mergeCells(`B${endNumRow + 11}:M${endNumRow + 11}`)
-        worksheet.getCell(`B${endNumRow + 11}`).value =
-            'Lưu ý: Trường hợp có phát sinh phụ lục/văn bản thỏa thuận sau khi ký hợp đồng, thì bản hợp đồng của Stapimex lưu giữ sẽ được đại diện Stapimex ghi nhận cụ thể tại phần ghi chú bên dưới. (Bản hợp đồng của Bên đối tác lưu giữ có thể ghi hoặc không, tùy theo yêu cầu quản lý của đối tác).'
-        // Apply font style
-        worksheet.getCell(`B${endNumRow + 11}`).font = {
-            name: 'Times New Roman',
-            size: 18,
-        }
-        worksheet.getCell(`B${endNumRow + 11}`).alignment = {
-            wrapText: true,
             vertical: 'top',
         }
 
-        worksheet.getRow(endNumRow + 11).height = 90
+        worksheet.getRow(endNumRow + 10).height = 70
 
         worksheet.mergeCells(`B${endNumRow + 12}:E${endNumRow + 12}`)
         worksheet.getCell(`B${endNumRow + 12}`).value = 'ĐẠI DIỆN BÊN MUA'
@@ -1695,8 +1682,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         worksheet.getRow(endNumRow + 22).addPageBreak()
 
         worksheet.mergeCells(`B${endNumRow + 23}:M${endNumRow + 23}`)
-        worksheet.getCell(`B${endNumRow + 23}`).value =
-            'Ghi chú phụ lục/văn bản thỏa thuận đính kèm (nếu có):'
+        worksheet.getCell(`B${endNumRow + 23}`).value = 'Bảng Ghi chú:'
         worksheet.getCell(`B${endNumRow + 23}`).font = {
             name: 'Times New Roman',
             size: 18,
@@ -1705,32 +1691,43 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell(`B${endNumRow + 24}`).value = 'STT'
-        worksheet.mergeCells(`C${endNumRow + 24}:F${endNumRow + 24}`)
-        worksheet.getCell(`C${endNumRow + 24}`).value =
-            'Số phụ lục/văn bản thoả thuận'
-        worksheet.mergeCells(`G${endNumRow + 24}:H${endNumRow + 24}`)
-        worksheet.getCell(`G${endNumRow + 24}`).value = 'Ngày ký'
-        worksheet.mergeCells(`I${endNumRow + 24}:M${endNumRow + 24}`)
-        worksheet.getCell(`I${endNumRow + 24}`).value =
-            'Xác nhận của đại diện STAPIMEX/ Đối tác'
+        worksheet.getRow(endNumRow + 23).height = 60
 
-        for (let col of ['B', 'C', 'G', 'I']) {
-            worksheet.getCell(`${col}${endNumRow + 24}`).font = {
+        const noteHeaders = [
+            { range: `B${endNumRow + 24}:B${endNumRow + 24}`, value: 'TÊN VẬT TƯ BAO BÌ', col: 'B' },
+            { range: `C${endNumRow + 24}:C${endNumRow + 24}`, value: 'NGÀY GIAO', col: 'C' },
+            { range: `D${endNumRow + 24}:F${endNumRow + 24}`, value: 'Lần giao thứ ...', col: 'D' },
+            { range: `G${endNumRow + 24}:H${endNumRow + 24}`, value: 'Lần giao thứ ...', col: 'G' },
+            { range: `I${endNumRow + 24}:J${endNumRow + 24}`, value: 'Lần giao thứ ....', col: 'I' },
+            { range: `K${endNumRow + 24}:M${endNumRow + 24}`, value: 'Xác nhận của đại diện STAPIMEX', col: 'K' },
+        ]
+
+        noteHeaders.forEach(h => {
+            const cols = h.range.split(':')
+            if (cols[0] !== cols[1]) {
+                worksheet.mergeCells(h.range)
+            }
+            const cell = worksheet.getCell(`${h.col}${endNumRow + 24}`)
+            cell.value = h.value
+            cell.font = {
                 name: 'Times New Roman',
-                size: 18,
+                size: 17,
             }
-            worksheet.getCell(`${col}${endNumRow + 24}`).alignment = {
+            cell.alignment = {
                 vertical: 'middle',
-                horizontal: col === 'G' ? 'center' : 'left',
+                horizontal: 'center',
+                wrapText: true
             }
-        }
+        })
+
+        worksheet.getRow(endNumRow + 24).height = 120
 
         for (let r = endNumRow + 25; r <= endNumRow + 28; r++) {
-            worksheet.mergeCells(`C${r}:F${r}`)
+            worksheet.mergeCells(`D${r}:F${r}`)
             worksheet.mergeCells(`G${r}:H${r}`)
-            worksheet.mergeCells(`I${r}:M${r}`)
-            worksheet.getRow(r).height = 60
+            worksheet.mergeCells(`I${r}:J${r}`)
+            worksheet.mergeCells(`K${r}:M${r}`)
+            worksheet.getRow(r).height = 120
         }
 
         for (let r = endNumRow + 24; r <= endNumRow + 28; r++) {
@@ -1744,6 +1741,9 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
                 }
             }
         }
+
+        // Ẩn dòng 2 (không xóa để tránh lỗi merged cells)
+        worksheet.getRow(2).hidden = true
 
         // Generate and save the Excel file
         const buffer = await workbook.xlsx.writeBuffer()
