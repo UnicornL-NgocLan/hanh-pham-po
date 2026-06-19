@@ -1510,6 +1510,32 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             wrapText: true,
         }
 
+        worksheet.mergeCells(`B${endNumRow + 5}:M${endNumRow + 5}`)
+        worksheet.getCell(`B${endNumRow + 5}`).value =
+            `Bên bán ký, đóng dấu và gửi trả đơn hàng gốc cho bên mua chậm nhất 3 ngày kể từ ngày nhận được đơn hàng gốc (bản giấy).`
+        // Apply font style
+        worksheet.getCell(`B${endNumRow + 5}`).font = {
+            name: 'Times New Roman',
+            size: 18,
+        }
+        worksheet.getCell(`B${endNumRow + 5}`).alignment = {
+            vertical: 'middle',
+        }
+
+        endNumRow++
+
+        worksheet.getCell(`A${endNumRow + 5}`).value = '3.'
+        // Apply font style
+        worksheet.getCell(`A${endNumRow + 5}`).font = {
+            name: 'Times New Roman',
+            size: 18,
+        }
+        worksheet.getCell(`A${endNumRow + 5}`).alignment = {
+            vertical: 'middle',
+            horizontal: 'center',
+            wrapText: true,
+        }
+
         worksheet.getCell(`B${endNumRow + 5}`).value =
             `Chi phí bốc xếp: Mỗi bên chịu một đầu`
         // Apply font style
@@ -1521,7 +1547,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell(`A${endNumRow + 6}`).value = '3.'
+        worksheet.getCell(`A${endNumRow + 6}`).value = '4.'
         // Apply font style
         worksheet.getCell(`A${endNumRow + 6}`).font = {
             name: 'Times New Roman',
@@ -1544,7 +1570,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             vertical: 'middle',
         }
 
-        worksheet.getCell(`A${endNumRow + 7}`).value = '4.'
+        worksheet.getCell(`A${endNumRow + 7}`).value = '5.'
         // Apply font style
         worksheet.getCell(`A${endNumRow + 7}`).font = {
             name: 'Times New Roman',
@@ -1571,7 +1597,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
 
         worksheet.getRow(endNumRow + 7).height = 150
 
-        worksheet.getCell(`A${endNumRow + 8}`).value = '5.'
+        worksheet.getCell(`A${endNumRow + 8}`).value = '6.'
         // Apply font style
         worksheet.getCell(`A${endNumRow + 8}`).font = {
             name: 'Times New Roman',
@@ -1598,7 +1624,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
 
         worksheet.getRow(endNumRow + 8).height = 40
 
-        worksheet.getCell(`A${endNumRow + 9}`).value = '6.'
+        worksheet.getCell(`A${endNumRow + 9}`).value = '7.'
         // Apply font style
         worksheet.getCell(`A${endNumRow + 9}`).font = {
             name: 'Times New Roman',
@@ -1626,7 +1652,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
 
         worksheet.getRow(endNumRow + 9).height = 120
 
-        worksheet.getCell(`A${endNumRow + 10}`).value = '7.'
+        worksheet.getCell(`A${endNumRow + 10}`).value = '8.'
         // Apply font style
         worksheet.getCell(`A${endNumRow + 10}`).font = {
             name: 'Times New Roman',
@@ -1694,12 +1720,13 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
         worksheet.getRow(endNumRow + 23).height = 60
 
         const noteHeaders = [
-            { range: `B${endNumRow + 24}:B${endNumRow + 24}`, value: 'TÊN VẬT TƯ BAO BÌ', col: 'B' },
-            { range: `C${endNumRow + 24}:C${endNumRow + 24}`, value: 'NGÀY GIAO', col: 'C' },
-            { range: `D${endNumRow + 24}:F${endNumRow + 24}`, value: 'Lần giao thứ ...', col: 'D' },
-            { range: `G${endNumRow + 24}:H${endNumRow + 24}`, value: 'Lần giao thứ ...', col: 'G' },
-            { range: `I${endNumRow + 24}:J${endNumRow + 24}`, value: 'Lần giao thứ ....', col: 'I' },
-            { range: `K${endNumRow + 24}:M${endNumRow + 24}`, value: 'Xác nhận của đại diện STAPIMEX', col: 'K' },
+            { range: `B${endNumRow + 24}:B${endNumRow + 25}`, value: 'TÊN VẬT TƯ BAO BÌ', col: 'B', row: 24 },
+            { range: `C${endNumRow + 24}:C${endNumRow + 25}`, value: 'NGÀY GIAO', col: 'C', row: 24 },
+            { range: `K${endNumRow + 24}:M${endNumRow + 25}`, value: 'Xác nhận của đại diện STAPIMEX', col: 'K', row: 24 },
+            { range: `D${endNumRow + 24}:J${endNumRow + 24}`, value: 'Số lượng', col: 'D', row: 24},
+            { range: `D${endNumRow + 25}:F${endNumRow + 25}`, value: 'Lần giao thứ ...', col: 'D', row: 25 },
+            { range: `G${endNumRow + 25}:H${endNumRow + 25}`, value: 'Lần giao thứ ...', col: 'G', row: 25 },
+            { range: `I${endNumRow + 25}:J${endNumRow + 25}`, value: 'Lần giao thứ ....', col: 'I', row: 25 },
         ]
 
         noteHeaders.forEach(h => {
@@ -1707,11 +1734,12 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             if (cols[0] !== cols[1]) {
                 worksheet.mergeCells(h.range)
             }
-            const cell = worksheet.getCell(`${h.col}${endNumRow + 24}`)
+            const cell = worksheet.getCell(`${h.col}${endNumRow + h.row}`)
             cell.value = h.value
             cell.font = {
                 name: 'Times New Roman',
                 size: 17,
+                color: h.fontColor ? { argb: h.fontColor } : undefined
             }
             cell.alignment = {
                 vertical: 'middle',
@@ -1720,9 +1748,10 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             }
         })
 
-        worksheet.getRow(endNumRow + 24).height = 120
+        worksheet.getRow(endNumRow + 24).height = 60
+        worksheet.getRow(endNumRow + 25).height = 60
 
-        for (let r = endNumRow + 25; r <= endNumRow + 28; r++) {
+        for (let r = endNumRow + 26; r <= endNumRow + 29; r++) {
             worksheet.mergeCells(`D${r}:F${r}`)
             worksheet.mergeCells(`G${r}:H${r}`)
             worksheet.mergeCells(`I${r}:J${r}`)
@@ -1730,7 +1759,7 @@ export const exportPurchaseOrderToExcel = async (po, data) => {
             worksheet.getRow(r).height = 120
         }
 
-        for (let r = endNumRow + 24; r <= endNumRow + 28; r++) {
+        for (let r = endNumRow + 24; r <= endNumRow + 29; r++) {
             for (let c = 2; c <= 13; c++) {
                 const cell = worksheet.getRow(r).getCell(c)
                 cell.border = {
